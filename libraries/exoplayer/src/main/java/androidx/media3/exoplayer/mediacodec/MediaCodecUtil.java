@@ -205,9 +205,27 @@ public final class MediaCodecUtil {
       boolean requiresSecureDecoder,
       boolean requiresTunnelingDecoder)
       throws DecoderQueryException {
+    @Nullable String mimeType = format.sampleMimeType;
     List<MediaCodecInfo> decoderInfos =
         mediaCodecSelector.getDecoderInfos(
             format.sampleMimeType, requiresSecureDecoder, requiresTunnelingDecoder);
+    // Hotstar - Remove software AV1 decoders from the list - Start
+    List<MediaCodecInfo> swAv1DecoderInfos = new ArrayList<>();
+    if (MimeTypes.VIDEO_AV1.equals(mimeType)) {
+      for (MediaCodecInfo decoderInfo : decoderInfos) {
+        // Removing all non-hardware accelerated AV1 decoders.
+        if (!decoderInfo.hardwareAccelerated && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
+          Log.e(TAG, "Hotstar: Will remove AV1 decoder from list: "+decoderInfo.name);
+          swAv1DecoderInfos.add(decoderInfo);
+        } else {
+          Log.e(TAG, "Hotstar: Will not remove AV1 decoder from list: "+decoderInfo.name);
+        }
+      }
+    }
+
+    if (!swAv1DecoderInfos.isEmpty()) {
+      decoderInfos.removeAll(swAv1DecoderInfos);
+    }
     List<MediaCodecInfo> alternativeDecoderInfos =
         getAlternativeDecoderInfos(
             mediaCodecSelector, format, requiresSecureDecoder, requiresTunnelingDecoder);
@@ -245,8 +263,28 @@ public final class MediaCodecUtil {
     if (alternativeMimeType == null) {
       return ImmutableList.of();
     }
-    return mediaCodecSelector.getDecoderInfos(
+    List<MediaCodecInfo> alternateDecoderInfos =  mediaCodecSelector.getDecoderInfos(
         alternativeMimeType, requiresSecureDecoder, requiresTunnelingDecoder);
+
+    // Hotstar - Remove software AV1 decoders from the list - Start
+    List<MediaCodecInfo> swAv1DecoderInfos = new ArrayList<>();
+    if (MimeTypes.VIDEO_AV1.equals(alternativeMimeType)) {
+      for (MediaCodecInfo decoderInfo : alternateDecoderInfos) {
+        // Removing all non-hardware accelerated AV1 decoders.
+        if (!decoderInfo.hardwareAccelerated && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
+          Log.e(TAG, "Hotstar: Will remove AV1 decoder from list: "+decoderInfo.name);
+          swAv1DecoderInfos.add(decoderInfo);
+        } else {
+          Log.e(TAG, "Hotstar: Will not remove AV1 decoder from list: "+decoderInfo.name);
+        }
+      }
+    }
+
+    if (!swAv1DecoderInfos.isEmpty()) {
+      alternateDecoderInfos.removeAll(swAv1DecoderInfos);
+    }
+
+    return alternateDecoderInfos;
   }
 
   /**

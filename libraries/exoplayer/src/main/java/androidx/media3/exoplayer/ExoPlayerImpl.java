@@ -1153,7 +1153,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
   public long getRenderedFrameCountForTrackType(int trackType) {
     verifyApplicationThread();
     for (Renderer renderer : renderers) {
-      if (renderer.getTrackType() == trackType) {
+      if ((renderer.getTrackType() == trackType)
+          && (renderer.getState() == Renderer.STATE_STARTED)) {
         return renderer.getRenderedFrameCount();
       }
     }

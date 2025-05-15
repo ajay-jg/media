@@ -1,0 +1,126 @@
+apply from: "$gradle.ext.androidxMediaSettingsDir/common_library_config.gradle"
+
+// Dependent HsDav1d library version.
+def hsdav1dLibVersion = '1.4.3.hotstar.1.0.0'
+
+android {
+    namespace 'androidx.media3.decoder.hsdav1d'
+
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_BUILD_TYPE=Release"
+                arguments "-DBUILD_TESTING=OFF"
+                targets "hsdav1dJNI"
+
+                // Define CMake variables
+                arguments "-DDAV1D_LIB_DEPENDENCY_DIR=${buildDir}/unzipped"
+            }
+        }
+    }
+}
+
+// Configure the native build.
+android.externalNativeBuild.cmake {
+    path = 'src/main/jni/hsdav1d/CMakeLists.txt'
+    version = '3.22.1'
+    if (project.hasProperty('externalNativeBuildDir')) {
+        if (!new File(externalNativeBuildDir).isAbsolute()) {
+            ext.externalNativeBuildDir =
+                    new File(rootDir, it.externalNativeBuildDir)
+        }
+        buildStagingDirectory = "${externalNativeBuildDir}/${project.name}"
+    }
+}
+
+repositories {
+    mavenLocal()
+    google()
+    mavenCentral()
+
+    maven {
+        name = "RemoteRepo"
+        url = uri("https://nexus.hotstar.com/repository/android-snapshot/")
+        credentials {
+            username = "android"
+            password = System.getenv("MAVEN_REPOSITORY_ANDROID_ACCESS_PASSWORD")
+        }
+    }
+}
+
+configurations {
+    unzipLibs {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    implementation project(':lib-decoder')
+    implementation project(':lib-decoder')
+    implementation project(':lib-decoder')
+    implementation project(':lib-common')
+    implementation project(':lib-exoplayer')
+    testImplementation 'androidx.test.ext:junit:' + androidxTestJUnitVersion
+
+    // Define dependencies for unzipLibs configuration
+    unzipLibs "com.hotstar.dav1d:dav1d-android-aarch64:${hsdav1dLibVersion}"
+    unzipLibs "com.hotstar.dav1d:dav1d-android-arm:${hsdav1dLibVersion}"
+    unzipLibs "com.hotstar.dav1d:dav1d-android-x86:${hsdav1dLibVersion}"
+    unzipLibs "com.hotstar.dav1d:dav1d-android-x86_64:${hsdav1dLibVersion}"
+}
+
+// List of ABIs and their respective output directories
+def abiMappings = [
+        'aarch64': 'arm64-v8a',
+        'arm': 'armeabi-v7a',
+        'x86': 'x86',
+        'x86_64': 'x86_64'
+]
+
+// Define a generic task generation function
+def createUnzipTask(String abi, String directory) {
+    tasks.create(name: "unzipDav1d${abi.capitalize()}", type: Copy) {
+        def fileToUnzip =
+                configurations.unzipLibs.files.find { it.name.contains("dav1d-android-${abi}") }
+        if (fileToUnzip) {
+            println "Unzipping dav1d-android-${abi}: ${fileToUnzip}"
+            from zipTree(fileToUnzip)
+            into "$buildDir/unzipped/${directory}"
+        } else {
+            throw new GradleException("No file found for dav1d-${abi}")
+        }
+    }
+}
+
+// Generate tasks for all ABIs
+abiMappings.each { abi, directory ->
+    createUnzipTask(abi, directory)
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('externalNativeBuild') || task.name.startsWith('build')) {
+        abiMappings.each { abi, _ ->
+            task.dependsOn "unzipDav1d${abi.capitalize()}"
+        }
+    }
+}
+
+// Ensure unzip tasks are run before the build task
+tasks.build.dependsOn abiMappings.keySet().collect { abi ->
+    "unzipDav1d${abi.capitalize()}"
+}
+
+tasks.clean {
+    delete fileTree(dir: "$buildDir/unzipped")
+}
+
+ext {
+    javadocTitle = 'AV1 extension for Hotstar Dav1d decoder'
+    releaseArtifactId = 'extension-hsdav1d'
+    releaseDescription = 'Dav1d AV1 extension for ExoPlayer for Hotstar.'
+}
+
+//apply from: '../../javadoc_library.gradle'
+//apply from: '../../publish.gradle' //TODO: Discuss once with mayur
