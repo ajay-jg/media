@@ -73,6 +73,9 @@
 -keepclasseswithmembers class androidx.media3.exoplayer.rtsp.RtspMediaSource$Factory {
   <init>();
 }
+-keep class androidx.media3.decoder.hsdav1d.HsDav1dJniLogger {
+     public static void callback(int, java.lang.String);
+ }
 
 # Constructors and methods accessed via reflection in PlaybackVideoGraphWrapper
 -dontnote androidx.media3.effect.PreviewingSingleInputVideoGraph$Factory
