@@ -96,7 +96,12 @@ public abstract class Chunk implements Loadable {
       long startTimeUs,
       long endTimeUs) {
     this.dataSource = new StatsDataSource(dataSource);
-    this.dataSpec = Assertions.checkNotNull(dataSpec);
+    if (dataSpec.customData == null && trackSelectionData != null) {
+      this.dataSpec = Assertions.checkNotNull(dataSpec).buildUpon()
+          .setCustomData(trackSelectionData).build();
+    } else {
+      this.dataSpec = Assertions.checkNotNull(dataSpec);
+    }
     this.type = type;
     this.trackFormat = trackFormat;
     this.trackSelectionReason = trackSelectionReason;
