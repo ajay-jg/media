@@ -853,6 +853,24 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
   }
 
   @Override
+  public final void onDrmKeysDownloadStart(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+    EventTime eventTime = generateMediaPeriodEventTime(windowIndex, mediaPeriodId);
+    sendEvent(
+        eventTime,
+        AnalyticsListener.EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START,
+        listener -> listener.onDrmKeysDownloadStart(eventTime));
+  }
+
+  @Override
+  public final void onDrmKeysDownloadEnd(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+    EventTime eventTime = generateMediaPeriodEventTime(windowIndex, mediaPeriodId);
+    sendEvent(
+        eventTime,
+        AnalyticsListener.EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END,
+        listener -> listener.onDrmKeysDownloadEnd(eventTime));
+  }
+
+  @Override
   public final void onDrmSessionManagerError(
       int windowIndex, @Nullable MediaPeriodId mediaPeriodId, Exception error) {
     EventTime eventTime = generateMediaPeriodEventTime(windowIndex, mediaPeriodId);

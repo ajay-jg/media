@@ -324,6 +324,21 @@ public abstract class CompositeMediaSource<T> extends BaseMediaSource {
       }
     }
 
+
+    @Override
+    public void onDrmKeysDownloadStart(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+      if (maybeUpdateEventDispatcher(windowIndex, mediaPeriodId)) {
+        drmEventDispatcher.drmKeysDownloadStart();
+      }
+    }
+
+    @Override
+    public void onDrmKeysDownloadEnd(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+      if (maybeUpdateEventDispatcher(windowIndex, mediaPeriodId)) {
+        drmEventDispatcher.drmKeysDownloadEnd();
+      }
+    }
+
     @Override
     public void onDrmSessionManagerError(
         int windowIndex, @Nullable MediaPeriodId mediaPeriodId, Exception error) {

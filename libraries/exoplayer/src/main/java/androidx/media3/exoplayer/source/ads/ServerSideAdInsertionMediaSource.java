@@ -371,6 +371,32 @@ public final class ServerSideAdInsertionMediaSource extends BaseMediaSource
   }
 
   @Override
+  public void onDrmKeysDownloadStart(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+    @Nullable
+    MediaPeriodImpl mediaPeriod =
+        getMediaPeriodForEvent(
+            mediaPeriodId, /* mediaLoadData= */ null, /* useLoadingPeriod= */ false);
+    if (mediaPeriod == null) {
+      drmEventDispatcherWithoutId.drmKeysDownloadStart();
+    } else {
+      mediaPeriod.drmEventDispatcher.drmKeysDownloadStart();
+    }
+  }
+
+  @Override
+  public void onDrmKeysDownloadEnd(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {
+    @Nullable
+    MediaPeriodImpl mediaPeriod =
+        getMediaPeriodForEvent(
+            mediaPeriodId, /* mediaLoadData= */ null, /* useLoadingPeriod= */ false);
+    if (mediaPeriod == null) {
+      drmEventDispatcherWithoutId.drmKeysDownloadEnd();
+    } else {
+      mediaPeriod.drmEventDispatcher.drmKeysDownloadEnd();
+    }
+  }
+
+  @Override
   public void onDrmSessionManagerError(
       int windowIndex, @Nullable MediaPeriodId mediaPeriodId, Exception error) {
     @Nullable

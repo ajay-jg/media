@@ -510,6 +510,16 @@ public class EventLogger implements AnalyticsListener {
     logd(eventTime, "drmSessionAcquired", "state=" + state);
   }
 
+  @Override
+  public void onDrmKeysDownloadStart(EventTime eventTime) {
+    logd(eventTime, "drmKeysDownloadStart");
+  }
+
+  @Override
+  public void onDrmKeysDownloadEnd(EventTime eventTime) {
+    logd(eventTime, "drmKeysDownloadEnd");
+  }
+
   @UnstableApi
   @Override
   public void onDrmSessionManagerError(EventTime eventTime, Exception error) {

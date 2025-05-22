@@ -702,6 +702,30 @@ import java.util.Set;
     }
 
     @Override
+    public void onDrmKeysDownloadStart(
+        int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId) {
+      @Nullable
+      Pair<Integer, MediaSource.@NullableType MediaPeriodId> eventParameters =
+          getEventParameters(windowIndex, mediaPeriodId);
+      if (eventParameters != null) {
+        eventHandler.post(
+            () -> eventListener.onDrmKeysDownloadStart(eventParameters.first, eventParameters.second));
+      }
+    }
+
+    @Override
+    public void onDrmKeysDownloadEnd(
+        int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId) {
+      @Nullable
+      Pair<Integer, MediaSource.@NullableType MediaPeriodId> eventParameters =
+          getEventParameters(windowIndex, mediaPeriodId);
+      if (eventParameters != null) {
+        eventHandler.post(
+            () -> eventListener.onDrmKeysDownloadEnd(eventParameters.first, eventParameters.second));
+      }
+    }
+
+    @Override
     public void onDrmSessionManagerError(
         int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, Exception error) {
       @Nullable

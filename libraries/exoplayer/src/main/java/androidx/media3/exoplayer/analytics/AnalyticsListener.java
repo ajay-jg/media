@@ -235,7 +235,9 @@ public interface AnalyticsListener {
     EVENT_VIDEO_CODEC_ERROR,
     EVENT_AUDIO_TRACK_INITIALIZED,
     EVENT_AUDIO_TRACK_RELEASED,
-    EVENT_RENDERER_READY_CHANGED
+    EVENT_RENDERER_READY_CHANGED,
+    EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START,
+    EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END,
   })
   @interface EventFlags {}
 
@@ -447,6 +449,11 @@ public interface AnalyticsListener {
 
   /** A renderer changed its readiness for playback. */
   @UnstableApi int EVENT_RENDERER_READY_CHANGED = 1033;
+
+  /** DRM keys download started. */
+  int EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START = 2001; // Start Hotstar custom events with some offset.
+  /** DRM keys download ended. */
+  int EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END = 2002;
 
   /** Time information of an event. */
   @UnstableApi
@@ -1367,6 +1374,20 @@ public interface AnalyticsListener {
    */
   @UnstableApi
   default void onDrmKeysLoaded(EventTime eventTime) {}
+
+  /**
+   * Called each time drm keys download started.
+   *
+   * @param eventTime The event time.
+   */
+  default void onDrmKeysDownloadStart(EventTime eventTime) {}
+
+  /**
+   * Called each time drm keys download ended.
+   *
+   * @param eventTime The event time.
+   */
+  default void onDrmKeysDownloadEnd(EventTime eventTime) {}
 
   /**
    * Called when a drm error occurs.

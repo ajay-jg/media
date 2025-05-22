@@ -49,6 +49,22 @@ public interface DrmSessionEventListener {
   default void onDrmKeysLoaded(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {}
 
   /**
+   * Called each time keys download starts.
+   *
+   * @param windowIndex The window index in the timeline this media period belongs to.
+   * @param mediaPeriodId The {@link MediaPeriodId} associated with the drm session.
+   */
+  default void onDrmKeysDownloadStart(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {}
+
+  /**
+   * Called each time keys download completes.
+   *
+   * @param windowIndex The window index in the timeline this media period belongs to.
+   * @param mediaPeriodId The {@link MediaPeriodId} associated with the drm session.
+   */
+  default void onDrmKeysDownloadEnd(int windowIndex, @Nullable MediaPeriodId mediaPeriodId) {}
+
+  /**
    * Called when a drm error occurs.
    *
    * <p>This method being called does not indicate that playback has failed, or that it will fail.
@@ -172,6 +188,24 @@ public interface DrmSessionEventListener {
         DrmSessionEventListener listener = listenerAndHandler.listener;
         postOrRun(
             listenerAndHandler.handler, () -> listener.onDrmKeysLoaded(windowIndex, mediaPeriodId));
+      }
+    }
+
+    /** Dispatches {@link #onDrmKeysDownloadStart(int, MediaPeriodId)}. */
+    public void drmKeysDownloadStart() {
+      for (ListenerAndHandler listenerAndHandler : listenerAndHandlers) {
+        DrmSessionEventListener listener = listenerAndHandler.listener;
+        postOrRun(
+            listenerAndHandler.handler, () -> listener.onDrmKeysDownloadStart(windowIndex, mediaPeriodId));
+      }
+    }
+
+    /** Dispatches {@link #onDrmKeysDownloadEnd(int, MediaPeriodId)}. */
+    public void drmKeysDownloadEnd() {
+      for (ListenerAndHandler listenerAndHandler : listenerAndHandlers) {
+        DrmSessionEventListener listener = listenerAndHandler.listener;
+        postOrRun(
+            listenerAndHandler.handler, () -> listener.onDrmKeysDownloadEnd(windowIndex, mediaPeriodId));
       }
     }
 
