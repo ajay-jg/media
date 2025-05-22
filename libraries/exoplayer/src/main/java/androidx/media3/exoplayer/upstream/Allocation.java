@@ -24,13 +24,13 @@ import androidx.media3.common.util.UnstableApi;
  * Allocator#getIndividualAllocationLength()} on the {@link Allocator} from which it was obtained.
  */
 @UnstableApi
-public final class Allocation {
+public class Allocation {
 
   /**
    * The array containing the allocated space. The allocated space might not be at the start of the
    * array, and so {@link #offset} must be used when indexing into it.
    */
-  public final byte[] data;
+  public byte[] data;
 
   /** The offset of the allocated space in {@link #data}. */
   public final int offset;
@@ -43,4 +43,13 @@ public final class Allocation {
     this.data = data;
     this.offset = offset;
   }
+
+  public void dump() {
+    // no-op
+  }
+
+  public void load() {
+    // no-op
+  }
+
 }

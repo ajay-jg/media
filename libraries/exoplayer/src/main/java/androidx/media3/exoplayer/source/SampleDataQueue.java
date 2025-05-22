@@ -233,6 +233,7 @@ import java.util.Arrays;
           allocator.allocate(),
           new AllocationNode(writeAllocationNode.endPosition, allocationLength));
     }
+    writeAllocationNode.allocation.load();
     return min(length, (int) (writeAllocationNode.endPosition - totalBytesWritten));
   }
 
@@ -244,6 +245,7 @@ import java.util.Arrays;
   private void postAppend(int length) {
     totalBytesWritten += length;
     if (totalBytesWritten == writeAllocationNode.endPosition) {
+      writeAllocationNode.allocation.dump();
       writeAllocationNode = writeAllocationNode.next;
     }
   }
@@ -405,6 +407,7 @@ import java.util.Arrays;
     while (remaining > 0) {
       int toCopy = min(remaining, (int) (allocationNode.endPosition - absolutePosition));
       Allocation allocation = allocationNode.allocation;
+      allocation.load();
       target.put(allocation.data, allocationNode.translateOffset(absolutePosition), toCopy);
       remaining -= toCopy;
       absolutePosition += toCopy;
@@ -431,6 +434,7 @@ import java.util.Arrays;
     while (remaining > 0) {
       int toCopy = min(remaining, (int) (allocationNode.endPosition - absolutePosition));
       Allocation allocation = allocationNode.allocation;
+      allocation.load();
       System.arraycopy(
           allocation.data,
           allocationNode.translateOffset(absolutePosition),
