@@ -61,6 +61,9 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
     private final float bandwidthFraction;
     private final float bufferedFractionToLiveEdgeForQualityIncrease;
     private final Clock clock;
+    private final boolean initialVideoResolutionEnabled;
+    private final int initialVideoResolutionWidth;
+    private final int initialVideoResolutionHeight;
 
     /** Creates an adaptive track selection factory with default parameters. */
     public Factory() {
@@ -101,6 +104,47 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
           bandwidthFraction,
           DEFAULT_BUFFERED_FRACTION_TO_LIVE_EDGE_FOR_QUALITY_INCREASE,
           Clock.DEFAULT);
+    }
+
+    /**
+     * Creates an adaptive track selection factory.
+     *
+     * @param minDurationForQualityIncreaseMs The minimum duration of buffered data required for the
+     *     selected track to switch to one of higher quality.
+     * @param maxDurationForQualityDecreaseMs The maximum duration of buffered data required for the
+     *     selected track to switch to one of lower quality.
+     * @param minDurationToRetainAfterDiscardMs When switching to a video track of higher quality,
+     *     the selection may indicate that media already buffered at the lower quality can be
+     *     discarded to speed up the switch. This is the minimum duration of media that must be
+     *     retained at the lower quality. It must be at least {@code
+     *     minDurationForQualityIncreaseMs}.
+     * @param bandwidthFraction The fraction of the available bandwidth that the selection should
+     *     consider available for use. Setting to a value less than 1 is recommended to account for
+     *     inaccuracies in the bandwidth estimator.
+     * @param initialVideoResolutionEnabled If initial video resolution configuration is enabled.
+     * @param initialVideoResolutionWidth Initial video resolution width.
+     * @param initialVideoResolutionHeight Initial video resolution height.
+     */
+    public Factory(
+        int minDurationForQualityIncreaseMs,
+        int maxDurationForQualityDecreaseMs,
+        int minDurationToRetainAfterDiscardMs,
+        float bandwidthFraction,
+        boolean initialVideoResolutionEnabled,
+        int initialVideoResolutionWidth,
+        int initialVideoResolutionHeight) {
+      this(
+          minDurationForQualityIncreaseMs,
+          maxDurationForQualityDecreaseMs,
+          minDurationToRetainAfterDiscardMs,
+          DEFAULT_MAX_WIDTH_TO_DISCARD,
+          DEFAULT_MAX_HEIGHT_TO_DISCARD,
+          bandwidthFraction,
+          DEFAULT_BUFFERED_FRACTION_TO_LIVE_EDGE_FOR_QUALITY_INCREASE,
+          Clock.DEFAULT,
+          initialVideoResolutionEnabled,
+          initialVideoResolutionWidth,
+          initialVideoResolutionHeight);
     }
 
     /**
@@ -218,6 +262,62 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
         float bandwidthFraction,
         float bufferedFractionToLiveEdgeForQualityIncrease,
         Clock clock) {
+      this (
+          minDurationForQualityIncreaseMs,
+          maxDurationForQualityDecreaseMs,
+          minDurationToRetainAfterDiscardMs,
+          maxWidthToDiscard,
+          maxHeightToDiscard,
+          bandwidthFraction,
+          bufferedFractionToLiveEdgeForQualityIncrease,
+          clock,
+          DEFAULT_INITIAL_VIDEO_RESOLUTION_ENABLED_FLAG,
+          DEFAULT_INITIAL_VIDEO_RESOLUTION_WIDTH,
+          DEFAULT_INITIAL_VIDEO_RESOLUTION_HEIGHT);
+    }
+
+    /**
+     * Creates an adaptive track selection factory.
+     *
+     * @param minDurationForQualityIncreaseMs The minimum duration of buffered data required for the
+     *     selected track to switch to one of higher quality.
+     * @param maxDurationForQualityDecreaseMs The maximum duration of buffered data required for the
+     *     selected track to switch to one of lower quality.
+     * @param minDurationToRetainAfterDiscardMs When switching to a video track of higher quality,
+     *     the selection may indicate that media already buffered at the lower quality can be
+     *     discarded to speed up the switch. This is the minimum duration of media that must be
+     *     retained at the lower quality. It must be at least {@code
+     *     minDurationForQualityIncreaseMs}.
+     * @param maxWidthToDiscard The maximum video width that the selector may discard from the
+     *     buffer to speed up switching to a higher quality.
+     * @param maxHeightToDiscard The maximum video height that the selector may discard from the
+     *     buffer to speed up switching to a higher quality.
+     * @param bandwidthFraction The fraction of the available bandwidth that the selection should
+     *     consider available for use. Setting to a value less than 1 is recommended to account for
+     *     inaccuracies in the bandwidth estimator.
+     * @param bufferedFractionToLiveEdgeForQualityIncrease For live streaming, the fraction of the
+     *     duration from current playback position to the live edge that has to be buffered before
+     *     the selected track can be switched to one of higher quality. This parameter is only
+     *     applied when the playback position is closer to the live edge than {@code
+     *     minDurationForQualityIncreaseMs}, which would otherwise prevent switching to a higher
+     *     quality from happening.
+     * @param clock A {@link Clock}
+     * @param initialVideoResolutionEnabled If initial video resolution configuration is enabled.
+     * @param initialVideoResolutionWidth Initial video resolution width.
+     * @param initialVideoResolutionHeight Initial video resolution height..
+     */
+    public Factory(
+        int minDurationForQualityIncreaseMs,
+        int maxDurationForQualityDecreaseMs,
+        int minDurationToRetainAfterDiscardMs,
+        int maxWidthToDiscard,
+        int maxHeightToDiscard,
+        float bandwidthFraction,
+        float bufferedFractionToLiveEdgeForQualityIncrease,
+        Clock clock,
+        boolean initialVideoResolutionEnabled,
+        int initialVideoResolutionWidth,
+        int initialVideoResolutionHeight) {
       this.minDurationForQualityIncreaseMs = minDurationForQualityIncreaseMs;
       this.maxDurationForQualityDecreaseMs = maxDurationForQualityDecreaseMs;
       this.minDurationToRetainAfterDiscardMs = minDurationToRetainAfterDiscardMs;
@@ -227,6 +327,9 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
       this.bufferedFractionToLiveEdgeForQualityIncrease =
           bufferedFractionToLiveEdgeForQualityIncrease;
       this.clock = clock;
+      this.initialVideoResolutionEnabled = initialVideoResolutionEnabled;
+      this.initialVideoResolutionWidth = initialVideoResolutionWidth;
+      this.initialVideoResolutionHeight = initialVideoResolutionHeight;
     }
 
     @Override
@@ -289,7 +392,10 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
           bandwidthFraction,
           bufferedFractionToLiveEdgeForQualityIncrease,
           adaptationCheckpoints,
-          clock);
+          clock,
+          initialVideoResolutionEnabled,
+          initialVideoResolutionWidth,
+          initialVideoResolutionHeight);
     }
   }
 
@@ -300,6 +406,9 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
   public static final int DEFAULT_MAX_HEIGHT_TO_DISCARD = 719;
   public static final float DEFAULT_BANDWIDTH_FRACTION = 0.7f;
   public static final float DEFAULT_BUFFERED_FRACTION_TO_LIVE_EDGE_FOR_QUALITY_INCREASE = 0.75f;
+  public static final boolean DEFAULT_INITIAL_VIDEO_RESOLUTION_ENABLED_FLAG = false;
+  public static final int DEFAULT_INITIAL_VIDEO_RESOLUTION_WIDTH = Integer.MAX_VALUE;
+  public static final int DEFAULT_INITIAL_VIDEO_RESOLUTION_HEIGHT = Integer.MAX_VALUE;
 
   private static final long MIN_TIME_BETWEEN_BUFFER_REEVALUTATION_MS = 1000;
 
@@ -320,6 +429,13 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
   private long lastBufferEvaluationMs;
   @Nullable private MediaChunk lastBufferEvaluationMediaChunk;
   private long latestBitrateEstimate;
+
+
+  private final boolean initialVideoResolutionEnabled;
+  private final int initialVideoResolutionWidth;
+  private final int initialVideoResolutionHeight;
+  private long initialPlaybackPositionUs = 0;
+  private boolean isInitialSelection = true;
 
   /**
    * @param group The {@link TrackGroup}.
@@ -389,6 +505,74 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
       float bufferedFractionToLiveEdgeForQualityIncrease,
       List<AdaptationCheckpoint> adaptationCheckpoints,
       Clock clock) {
+    this(
+        group,
+        tracks,
+        type,
+        bandwidthMeter,
+        minDurationForQualityIncreaseMs,
+        maxDurationForQualityDecreaseMs,
+        minDurationToRetainAfterDiscardMs,
+        maxWidthToDiscard,
+        maxHeightToDiscard,
+        bandwidthFraction,
+        bufferedFractionToLiveEdgeForQualityIncrease,
+        adaptationCheckpoints,
+        clock,
+        DEFAULT_INITIAL_VIDEO_RESOLUTION_ENABLED_FLAG,
+        DEFAULT_INITIAL_VIDEO_RESOLUTION_WIDTH,
+        DEFAULT_INITIAL_VIDEO_RESOLUTION_HEIGHT
+    );
+  }
+
+  /**
+   * @param group The {@link TrackGroup}.
+   * @param tracks The indices of the selected tracks within the {@link TrackGroup}. Must not be
+   *     empty. May be in any order.
+   * @param type The type that will be returned from {@link TrackSelection#getType()}.
+   * @param bandwidthMeter Provides an estimate of the currently available bandwidth.
+   * @param minDurationForQualityIncreaseMs The minimum duration of buffered data required for the
+   *     selected track to switch to one of higher quality.
+   * @param maxDurationForQualityDecreaseMs The maximum duration of buffered data required for the
+   *     selected track to switch to one of lower quality.
+   * @param minDurationToRetainAfterDiscardMs When switching to a video track of higher quality, the
+   *     selection may indicate that media already buffered at the lower quality can be discarded to
+   *     speed up the switch. This is the minimum duration of media that must be retained at the
+   *     lower quality. It must be at least {@code minDurationForQualityIncreaseMs}.
+   * @param maxWidthToDiscard The maximum video width that the selector may discard from the buffer
+   *     to speed up switching to a higher quality.
+   * @param maxHeightToDiscard The maximum video height that the selector may discard from the
+   *     buffer to speed up switching to a higher quality.
+   * @param bandwidthFraction The fraction of the available bandwidth that the selection should
+   *     consider available for use. Setting to a value less than 1 is recommended to account for
+   *     inaccuracies in the bandwidth estimator.
+   * @param bufferedFractionToLiveEdgeForQualityIncrease For live streaming, the fraction of the
+   *     duration from current playback position to the live edge that has to be buffered before the
+   *     selected track can be switched to one of higher quality. This parameter is only applied
+   *     when the playback position is closer to the live edge than {@code
+   *     minDurationForQualityIncreaseMs}, which would otherwise prevent switching to a higher
+   *     quality from happening.
+   * @param adaptationCheckpoints The {@link AdaptationCheckpoint checkpoints} that can be used to
+   *     calculate available bandwidth for this selection.
+   * @param clock The {@link Clock}.
+   */
+  protected AdaptiveTrackSelection(
+      TrackGroup group,
+      int[] tracks,
+      @Type int type,
+      BandwidthMeter bandwidthMeter,
+      long minDurationForQualityIncreaseMs,
+      long maxDurationForQualityDecreaseMs,
+      long minDurationToRetainAfterDiscardMs,
+      int maxWidthToDiscard,
+      int maxHeightToDiscard,
+      float bandwidthFraction,
+      float bufferedFractionToLiveEdgeForQualityIncrease,
+      List<AdaptationCheckpoint> adaptationCheckpoints,
+      Clock clock,
+      boolean initialVideoResolutionEnabled,
+      int initialVideoResolutionWidth,
+      int initialVideoResolutionHeight) {
     super(group, tracks, type);
     if (minDurationToRetainAfterDiscardMs < minDurationForQualityIncreaseMs) {
       Log.w(
@@ -412,6 +596,11 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
     reason = C.SELECTION_REASON_UNKNOWN;
     lastBufferEvaluationMs = C.TIME_UNSET;
     latestBitrateEstimate = C.RATE_UNSET_INT;
+    this.initialVideoResolutionEnabled = initialVideoResolutionEnabled;
+    this.initialVideoResolutionWidth = initialVideoResolutionWidth;
+    this.initialVideoResolutionHeight = initialVideoResolutionHeight;
+    initialPlaybackPositionUs = 0;
+    isInitialSelection = true;
   }
 
   @CallSuper
@@ -447,7 +636,13 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
     if (reason == C.SELECTION_REASON_UNKNOWN) {
       reason = C.SELECTION_REASON_INITIAL;
       selectedIndex = determineIdealSelectedIndex(nowMs, chunkDurationUs);
+      initialPlaybackPositionUs = playbackPositionUs;
       return;
+    }
+
+    if (initialVideoResolutionEnabled && isInitialSelection
+        && (initialPlaybackPositionUs != playbackPositionUs || bufferedDurationUs > 0)) {
+      isInitialSelection = false;
     }
 
     int previousSelectedIndex = selectedIndex;
@@ -599,10 +794,20 @@ public class AdaptiveTrackSelection extends BaseTrackSelection {
   private int determineIdealSelectedIndex(long nowMs, long chunkDurationUs) {
     long effectiveBitrate = getAllocatedBandwidth(chunkDurationUs);
     int lowestBitrateAllowedIndex = 0;
+    boolean outsideResolutionCap = false;
     for (int i = 0; i < length; i++) {
       if (nowMs == Long.MIN_VALUE || !isTrackExcluded(i, nowMs)) {
         Format format = getFormat(i);
-        if (canSelectFormat(format, format.bitrate, effectiveBitrate)) {
+        outsideResolutionCap = false;
+
+        //If it is in initial selection, apply the resolution cap.
+        if (isInitialSelection && initialVideoResolutionEnabled) {
+          if ((format.width > 0 && format.width > initialVideoResolutionWidth) ||
+              (format.height > 0 && format.height > initialVideoResolutionHeight)) {
+            outsideResolutionCap = true;
+          }
+        }
+        if (canSelectFormat(format, format.bitrate, effectiveBitrate) && !outsideResolutionCap) {
           return i;
         } else {
           lowestBitrateAllowedIndex = i;
