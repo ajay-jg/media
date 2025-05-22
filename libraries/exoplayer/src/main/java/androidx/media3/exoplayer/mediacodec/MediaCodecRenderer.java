@@ -714,6 +714,15 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
   }
 
   @Override
+  public long getRenderedFrameCount() {
+    try {
+      return decoderCounters.renderedOutputBufferCount;
+    } catch (NullPointerException e) {
+      return 0L;
+    }
+  }
+
+  @Override
   protected void onStreamChanged(
       Format[] formats,
       long startPositionUs,

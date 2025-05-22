@@ -697,6 +697,9 @@ public interface Renderer extends PlayerMessage.Target {
    */
   void reset();
 
+
+  default long getRenderedFrameCount() { return 0L; }
+
   /**
    * Releases the renderer.
    *

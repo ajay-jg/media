@@ -3185,6 +3185,8 @@ public interface Player {
    */
   long getContentPosition();
 
+  default long getRenderedFrameCountForTrackType(int trackType) { return 0L; }
+
   /**
    * If {@link #isPlayingAd()} returns {@code true}, returns an estimate of the content position in
    * the current content up to which data is buffered, in milliseconds. If there is no ad playing,

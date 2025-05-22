@@ -1195,6 +1195,12 @@ public class SimpleExoPlayer extends BasePlayer implements ExoPlayer {
   }
 
   @Override
+  public long getRenderedFrameCountForTrackType(int trackType) {
+    blockUntilConstructorFinished();
+    return player.getRenderedFrameCountForTrackType(trackType);
+  }
+
+  @Override
   public long getContentBufferedPosition() {
     blockUntilConstructorFinished();
     return player.getContentBufferedPosition();

@@ -1148,6 +1148,18 @@ import java.util.concurrent.CopyOnWriteArraySet;
     return getContentPositionInternal(playbackInfo);
   }
 
+
+  @Override
+  public long getRenderedFrameCountForTrackType(int trackType) {
+    verifyApplicationThread();
+    for (Renderer renderer : renderers) {
+      if (renderer.getTrackType() == trackType) {
+        return renderer.getRenderedFrameCount();
+      }
+    }
+    return 0L;
+  }
+
   @Override
   public long getContentBufferedPosition() {
     verifyApplicationThread();
