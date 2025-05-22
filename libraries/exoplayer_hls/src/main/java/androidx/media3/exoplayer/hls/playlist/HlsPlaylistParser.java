@@ -1226,7 +1226,8 @@ public final class HlsPlaylistParser implements ParsingLoadable.Parser<HlsPlayli
                 segmentByteRangeOffset,
                 segmentByteRangeLength,
                 hasGapTag,
-                trailingParts));
+                trailingParts,
+                false /* To remove build errors */));
         segmentStartTimeUs += segmentDurationUs;
         partStartTimeUs = segmentStartTimeUs;
         segmentDurationUs = 0;
@@ -1283,7 +1284,8 @@ public final class HlsPlaylistParser implements ParsingLoadable.Parser<HlsPlayli
         trailingParts,
         serverControl,
         renditionReportMap,
-        interstitials);
+        interstitials,
+        0);
   }
 
   private static DrmInitData getPlaylistProtectionSchemes(

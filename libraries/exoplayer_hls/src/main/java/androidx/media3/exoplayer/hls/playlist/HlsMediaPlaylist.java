@@ -108,6 +108,9 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
     /** The parts belonging to this segment. */
     public final List<Part> parts;
 
+    /** The segment has discontinuity tag. */
+    public boolean hasDiscontinuityTag;
+
     /**
      * Creates an instance to be used as init segment.
      *
@@ -136,7 +139,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
           byteRangeOffset,
           byteRangeLength,
           /* hasGapTag= */ false,
-          /* parts= */ ImmutableList.of());
+          /* parts= */ ImmutableList.of(),
+          false);
     }
 
     /**
@@ -169,7 +173,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         long byteRangeOffset,
         long byteRangeLength,
         boolean hasGapTag,
-        List<Part> parts) {
+        List<Part> parts,
+        boolean hasDiscontinuityTag) {
       super(
           url,
           initializationSegment,
@@ -184,6 +189,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
           hasGapTag);
       this.title = title;
       this.parts = ImmutableList.copyOf(parts);
+      this.hasDiscontinuityTag = hasDiscontinuityTag;
     }
 
     public Segment copyWith(long relativeStartTimeUs, int relativeDiscontinuitySequence) {
@@ -207,7 +213,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
           byteRangeOffset,
           byteRangeLength,
           hasGapTag,
-          updatedParts);
+          updatedParts,
+          hasDiscontinuityTag);
     }
   }
 
@@ -799,6 +806,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
   /** The attributes of the #EXT-X-SERVER-CONTROL header. */
   public final ServerControl serverControl;
 
+  public final long mediaSequenceAdjustmentNumber;
+
   /**
    * The interstitials declared as {@code #EXT-X-DATERANGE} with {@code
    * CLASS="com.apple.hls.interstitial"}
@@ -851,7 +860,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
       List<Part> trailingParts,
       ServerControl serverControl,
       Map<Uri, RenditionReport> renditionReports,
-      List<Interstitial> interstitials) {
+      List<Interstitial> interstitials,
+      long mediaSequenceAdjustmentNumber) {
     super(baseUri, tags, hasIndependentSegments);
     this.playlistType = playlistType;
     this.startTimeUs = startTimeUs;
@@ -889,6 +899,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
                 : max(0, durationUs + startOffsetUs);
     this.hasPositiveStartOffset = startOffsetUs >= 0;
     this.serverControl = serverControl;
+    this.mediaSequenceAdjustmentNumber = mediaSequenceAdjustmentNumber;
   }
 
   @Override
@@ -956,7 +967,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         trailingParts,
         serverControl,
         renditionReports,
-        interstitials);
+        interstitials,
+        mediaSequenceAdjustmentNumber);
   }
 
   /**
@@ -988,6 +1000,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         trailingParts,
         serverControl,
         renditionReports,
-        interstitials);
+        interstitials,
+        mediaSequenceAdjustmentNumber);
   }
 }
