@@ -27,6 +27,7 @@ import androidx.media3.datasource.DataSpec;
 import androidx.media3.datasource.StatsDataSource;
 import androidx.media3.exoplayer.source.LoadEventInfo;
 import androidx.media3.exoplayer.upstream.Loader.Loadable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,12 +97,12 @@ public abstract class Chunk implements Loadable {
       long startTimeUs,
       long endTimeUs) {
     this.dataSource = new StatsDataSource(dataSource);
+    Map<String, Object> customDataMap = new HashMap<String, Object>();
     if (dataSpec.customData == null && trackSelectionData != null) {
-      this.dataSpec = Assertions.checkNotNull(dataSpec).buildUpon()
-          .setCustomData(trackSelectionData).build();
-    } else {
-      this.dataSpec = Assertions.checkNotNull(dataSpec);
+      customDataMap.put("trackSelectionData", trackSelectionData);
     }
+    this.dataSpec = Assertions.checkNotNull(dataSpec).buildUpon()
+        .setCustomData(customDataMap).build();
     this.type = type;
     this.trackFormat = trackFormat;
     this.trackSelectionReason = trackSelectionReason;

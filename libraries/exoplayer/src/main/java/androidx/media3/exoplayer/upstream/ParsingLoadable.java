@@ -30,6 +30,7 @@ import androidx.media3.exoplayer.source.LoadEventInfo;
 import androidx.media3.exoplayer.upstream.Loader.Loadable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,7 +118,7 @@ public final class ParsingLoadable<T> implements Loadable {
   public ParsingLoadable(DataSource dataSource, Uri uri, int type, Parser<? extends T> parser) {
     this(
         dataSource,
-        new DataSpec.Builder().setUri(uri).setFlags(DataSpec.FLAG_ALLOW_GZIP).build(),
+        new DataSpec.Builder().setUri(uri).setFlags(DataSpec.FLAG_ALLOW_GZIP).setCustomData(new HashMap<String, Object>()).build(),
         type,
         parser);
   }
