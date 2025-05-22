@@ -52,6 +52,7 @@ import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Default implementation for {@link HlsPlaylistTracker}. */
@@ -63,11 +64,17 @@ public final class DefaultHlsPlaylistTracker
   public static final class Factory implements HlsPlaylistTracker.Factory {
     private static final String TAG = "DefaultHlsPlaylistTrackerFactory";
     private double playlistStuckTargetDurationCoefficient = DEFAULT_PLAYLIST_STUCK_TARGET_DURATION_COEFFICIENT;
+    private StaleManifestRetryLogic staleManifestRetryLogic = DEFAULT_STALE_MANIFEST_RETRY;
+
 
     public void setPlaylistStuckTargetDurationCoefficient(double playlistStuckTargetDurationCoefficient) {
       if (0.0 < playlistStuckTargetDurationCoefficient) {
         this.playlistStuckTargetDurationCoefficient = playlistStuckTargetDurationCoefficient;
       }
+    }
+
+    public void setStaleManifestRetry(StaleManifestRetryLogic staleManifestRetryLogic) {
+      this.staleManifestRetryLogic = staleManifestRetryLogic;
     }
 
     @SuppressLint("Range")
@@ -84,7 +91,8 @@ public final class DefaultHlsPlaylistTracker
             loadErrorHandlingPolicy,
             playlistParserFactory,
             cmcdConfiguration,
-            playlistStuckTargetDurationCoefficient);
+            playlistStuckTargetDurationCoefficient,
+            staleManifestRetryLogic);
     }
   }
 
@@ -93,6 +101,7 @@ public final class DefaultHlsPlaylistTracker
    * time after which an unchanging playlist is considered stuck.
    */
   public static final double DEFAULT_PLAYLIST_STUCK_TARGET_DURATION_COEFFICIENT = 3.5;
+  public static final StaleManifestRetryLogic DEFAULT_STALE_MANIFEST_RETRY = StaleManifestRetryLogic.DEFAULT;
 
   private final HlsDataSourceFactory dataSourceFactory;
   private final HlsPlaylistParserFactory playlistParserFactory;
@@ -100,6 +109,7 @@ public final class DefaultHlsPlaylistTracker
   private final HashMap<Uri, MediaPlaylistBundle> playlistBundles;
   private final CopyOnWriteArrayList<PlaylistEventListener> listeners;
   private final double playlistStuckTargetDurationCoefficient;
+  private final StaleManifestRetryLogic staleManifestRetryLogic;
   @Nullable private final CmcdConfiguration cmcdConfiguration;
 
   @Nullable private EventDispatcher eventDispatcher;
@@ -111,6 +121,8 @@ public final class DefaultHlsPlaylistTracker
   @Nullable private HlsMediaPlaylist primaryMediaPlaylistSnapshot;
   private boolean isLive;
   private long initialStartTimeUs;
+
+  private Random randomGeneratorForRetry = new Random();
 
   /**
    * Creates an instance.
@@ -130,7 +142,8 @@ public final class DefaultHlsPlaylistTracker
         loadErrorHandlingPolicy,
         playlistParserFactory,
         cmcdConfiguration,
-        DEFAULT_PLAYLIST_STUCK_TARGET_DURATION_COEFFICIENT);
+        DEFAULT_PLAYLIST_STUCK_TARGET_DURATION_COEFFICIENT,
+        DEFAULT_STALE_MANIFEST_RETRY);
   }
 
   /**
@@ -150,12 +163,14 @@ public final class DefaultHlsPlaylistTracker
       LoadErrorHandlingPolicy loadErrorHandlingPolicy,
       HlsPlaylistParserFactory playlistParserFactory,
       @Nullable CmcdConfiguration cmcdConfiguration,
-      double playlistStuckTargetDurationCoefficient) {
+      double playlistStuckTargetDurationCoefficient,
+      StaleManifestRetryLogic staleManifestRetryLogic) {
     this.dataSourceFactory = dataSourceFactory;
     this.playlistParserFactory = playlistParserFactory;
     this.loadErrorHandlingPolicy = loadErrorHandlingPolicy;
     this.cmcdConfiguration = cmcdConfiguration;
     this.playlistStuckTargetDurationCoefficient = playlistStuckTargetDurationCoefficient;
+    this.staleManifestRetryLogic = staleManifestRetryLogic;
     listeners = new CopyOnWriteArrayList<>();
     playlistBundles = new HashMap<>();
     initialStartTimeUs = C.TIME_UNSET;
@@ -884,7 +899,8 @@ public final class DefaultHlsPlaylistTracker
         durationUntilNextLoadUs =
             playlistSnapshot != oldPlaylist
                 ? playlistSnapshot.targetDurationUs
-                : (playlistSnapshot.targetDurationUs / 2);
+                : getStaleManifestRetryTime(playlistSnapshot.targetDurationUs,
+                    staleManifestRetryLogic);
       }
       earliestNextLoadTimeMs =
           currentTimeMs + Util.usToMs(durationUntilNextLoadUs) - loadEventInfo.loadDurationMs;
@@ -894,6 +910,20 @@ public final class DefaultHlsPlaylistTracker
       if (!playlistSnapshot.hasEndTag
           && (playlistUrl.equals(primaryMediaPlaylistUrl) || activeForPlayback)) {
         loadPlaylistInternal(getMediaPlaylistUriForReload());
+      }
+    }
+
+    private long getStaleManifestRetryTime(long targetUs, StaleManifestRetryLogic staleManifestRetryLogic) {
+      switch (staleManifestRetryLogic) {
+        case ORIGINAL_TARGET:
+          return targetUs;
+        case HALF_RANDOM:
+          long minValue = targetUs / 2;
+          long range = targetUs - minValue + 1;
+          return randomGeneratorForRetry.nextLong() % range + minValue;
+        case DEFAULT:
+        default:
+          return targetUs / 2;
       }
     }
 
@@ -983,5 +1013,10 @@ public final class DefaultHlsPlaylistTracker
       }
       return false;
     }
+  }
+  public enum StaleManifestRetryLogic {
+    DEFAULT,
+    ORIGINAL_TARGET,
+    HALF_RANDOM,
   }
 }
