@@ -131,7 +131,7 @@ public final class HlsMediaSource extends BaseMediaSource
      * <ul>
      *   <li>{@link DefaultDrmSessionManagerProvider}
      *   <li>{@link DefaultHlsPlaylistParserFactory}
-     *   <li>{@link DefaultHlsPlaylistTracker#FACTORY}
+     *   <li>{@link DefaultHlsPlaylistTracker.Factory}
      *   <li>{@link DefaultHlsExtractorFactory}
      *   <li>{@link DefaultLoadErrorHandlingPolicy}
      *   <li>{@link DefaultCompositeSequenceableLoaderFactory}
@@ -153,7 +153,7 @@ public final class HlsMediaSource extends BaseMediaSource
      * <ul>
      *   <li>{@link DefaultDrmSessionManagerProvider}
      *   <li>{@link DefaultHlsPlaylistParserFactory}
-     *   <li>{@link DefaultHlsPlaylistTracker#FACTORY}
+     *   <li>{@link DefaultHlsPlaylistTracker.Factory}
      *   <li>{@link DefaultHlsExtractorFactory}
      *   <li>{@link DefaultLoadErrorHandlingPolicy}
      *   <li>{@link DefaultCompositeSequenceableLoaderFactory}
@@ -166,7 +166,7 @@ public final class HlsMediaSource extends BaseMediaSource
       this.hlsDataSourceFactory = checkNotNull(hlsDataSourceFactory);
       drmSessionManagerProvider = new DefaultDrmSessionManagerProvider();
       playlistParserFactory = new DefaultHlsPlaylistParserFactory();
-      playlistTrackerFactory = DefaultHlsPlaylistTracker.FACTORY;
+      playlistTrackerFactory = new DefaultHlsPlaylistTracker.Factory();
       loadErrorHandlingPolicy = new DefaultLoadErrorHandlingPolicy();
       compositeSequenceableLoaderFactory = new DefaultCompositeSequenceableLoaderFactory();
       metadataType = METADATA_TYPE_ID3;
@@ -254,12 +254,16 @@ public final class HlsMediaSource extends BaseMediaSource
      */
     @CanIgnoreReturnValue
     public Factory setPlaylistTrackerFactory(HlsPlaylistTracker.Factory playlistTrackerFactory) {
-      this.playlistTrackerFactory =
-          checkNotNull(
-              playlistTrackerFactory,
-              "HlsMediaSource.Factory#setPlaylistTrackerFactory no longer handles null by"
-                  + " defaulting to DefaultHlsPlaylistTracker.FACTORY. Explicitly"
-                  + " pass a reference to this instance in order to retain the old behavior.");
+      try {
+        this.playlistTrackerFactory =
+            checkNotNull(
+                playlistTrackerFactory,
+                "HlsMediaSource.Factory#setPlaylistTrackerFactory no longer handles null by"
+                    + " defaulting to DefaultHlsPlaylistTracker.Factory. Explicitly"
+                    + " pass a reference to this instance in order to retain the old behavior.");
+      } catch(NullPointerException e) {
+        this.playlistTrackerFactory = new DefaultHlsPlaylistTracker.Factory();
+      }
       return this;
     }
 

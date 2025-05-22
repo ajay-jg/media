@@ -19,6 +19,7 @@ import static androidx.media3.common.util.Assertions.checkNotNull;
 import static androidx.media3.common.util.Util.castNonNull;
 import static java.lang.Math.max;
 
+import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -26,6 +27,7 @@ import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.common.ParserException;
 import androidx.media3.common.util.Assertions;
+import androidx.media3.common.util.Log;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.common.util.Util;
 import androidx.media3.datasource.DataSource;
@@ -58,7 +60,33 @@ public final class DefaultHlsPlaylistTracker
     implements HlsPlaylistTracker, Loader.Callback<ParsingLoadable<HlsPlaylist>> {
 
   /** Factory for {@link DefaultHlsPlaylistTracker} instances. */
-  public static final Factory FACTORY = DefaultHlsPlaylistTracker::new;
+  public static final class Factory implements HlsPlaylistTracker.Factory {
+    private static final String TAG = "DefaultHlsPlaylistTrackerFactory";
+    private double playlistStuckTargetDurationCoefficient = DEFAULT_PLAYLIST_STUCK_TARGET_DURATION_COEFFICIENT;
+
+    public void setPlaylistStuckTargetDurationCoefficient(double playlistStuckTargetDurationCoefficient) {
+      if (0.0 < playlistStuckTargetDurationCoefficient) {
+        this.playlistStuckTargetDurationCoefficient = playlistStuckTargetDurationCoefficient;
+      }
+    }
+
+    @SuppressLint("Range")
+    @Override
+    public HlsPlaylistTracker createTracker(HlsDataSourceFactory dataSourceFactory,
+        LoadErrorHandlingPolicy loadErrorHandlingPolicy,
+        HlsPlaylistParserFactory playlistParserFactory,
+        @Nullable CmcdConfiguration cmcdConfiguration) {
+
+      Log.d(TAG, "playlistStuckTargetDurationCoefficient is set to "
+          +playlistStuckTargetDurationCoefficient);
+        return new DefaultHlsPlaylistTracker(
+            dataSourceFactory,
+            loadErrorHandlingPolicy,
+            playlistParserFactory,
+            cmcdConfiguration,
+            playlistStuckTargetDurationCoefficient);
+    }
+  }
 
   /**
    * Default coefficient applied on the target duration of a playlist to determine the amount of
