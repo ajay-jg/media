@@ -671,6 +671,20 @@ import java.util.Set;
       }
     }
 
+    @Override
+    public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId,
+        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+      @Nullable
+      Pair<Integer, MediaSource.@NullableType MediaPeriodId> eventParameters =
+          getEventParameters(windowIndex, mediaPeriodId);
+      if (eventParameters != null) {
+        eventHandler.post(
+            () ->
+                eventListener.onStaleHlsManifestReceived(
+                    eventParameters.first, eventParameters.second, lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs));
+      }
+    }
+
     // DrmSessionEventListener implementation
 
     @Override

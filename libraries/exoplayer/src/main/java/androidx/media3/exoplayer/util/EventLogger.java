@@ -550,6 +550,12 @@ public class EventLogger implements AnalyticsListener {
     logd(eventTime, "drmSessionReleased");
   }
 
+  @Override
+  public void onStaleHlsManifestReceived(EventTime eventTime,
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+    logd(eventTime, "onStaleHlsManifestReceived");
+  }
+
   @UnstableApi
   @Override
   public void onRendererReadyChanged(

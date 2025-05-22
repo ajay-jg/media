@@ -827,11 +827,15 @@ public final class DefaultHlsPlaylistTracker
           // excluding in this case.
           forceRetry = true;
           playlistError = new PlaylistResetException(playlistUrl);
-        } else if (currentTimeMs - lastSnapshotChangeMs
-            > Util.usToMs(playlistSnapshot.targetDurationUs)
-                * playlistStuckTargetDurationCoefficient) {
-          // TODO: Allow customization of stuck playlists handling.
-          playlistError = new PlaylistStuckException(playlistUrl);
+        } else {
+          eventDispatcher.staleHlsManifestReceived(playlistSnapshot.mediaSequence,
+              lastSnapshotChangeMs, currentTimeMs);
+          if (currentTimeMs - lastSnapshotChangeMs
+              > Util.usToMs(playlistSnapshot.targetDurationUs)
+              * playlistStuckTargetDurationCoefficient) {
+            // TODO: Allow customization of stuck playlists handling.
+            playlistError = new PlaylistStuckException(playlistUrl);
+          }
         }
         if (playlistError != null) {
           this.playlistError = playlistError;

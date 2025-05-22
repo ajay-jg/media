@@ -238,6 +238,7 @@ public interface AnalyticsListener {
     EVENT_RENDERER_READY_CHANGED,
     EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START,
     EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END,
+    EVENT_HS_HLS_STALE_MANIFEST_RECEIVED
   })
   @interface EventFlags {}
 
@@ -454,6 +455,9 @@ public interface AnalyticsListener {
   int EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START = 2001; // Start Hotstar custom events with some offset.
   /** DRM keys download ended. */
   int EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END = 2002;
+
+  /** HLS stale manifest received */
+  int EVENT_HS_HLS_STALE_MANIFEST_RECEIVED = 2003;
 
   /** Time information of an event. */
   @UnstableApi
@@ -1452,6 +1456,15 @@ public interface AnalyticsListener {
    */
   @UnstableApi
   default void onPlayerReleased(EventTime eventTime) {}
+
+
+  /**
+   * Called each time stale HLS manifest is received
+   *
+   * @param eventTime The event time.
+   */
+  default void onStaleHlsManifestReceived(EventTime eventTime,
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {}
 
   /**
    * Called after one or more events occurred.

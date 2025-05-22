@@ -307,6 +307,15 @@ public abstract class CompositeMediaSource<T> extends BaseMediaSource {
       }
     }
 
+    @Override
+    public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId,
+        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+      if (maybeUpdateEventDispatcher(windowIndex, mediaPeriodId)) {
+        mediaSourceEventDispatcher.staleHlsManifestReceived(lastUpdatedMediaSequenceNumber,
+            lastManifestChangeTimeMs, currentTimeMs);
+      }
+    }
+
     // DrmSessionEventListener implementation
 
     @Override

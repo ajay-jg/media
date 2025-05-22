@@ -478,6 +478,17 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
         listener -> listener.onDownstreamFormatChanged(eventTime, mediaLoadData));
   }
 
+  @Override
+  public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaPeriodId mediaPeriodId,
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+    EventTime eventTime = generateMediaPeriodEventTime(windowIndex, mediaPeriodId);
+    sendEvent(
+        eventTime,
+        AnalyticsListener.EVENT_HS_HLS_STALE_MANIFEST_RECEIVED,
+        listener -> listener.onStaleHlsManifestReceived(eventTime,
+            lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs));
+  }
+
   // Player.Listener implementation.
 
   // TODO: Use Player.Listener.onEvents to know when a set of simultaneous callbacks finished.
