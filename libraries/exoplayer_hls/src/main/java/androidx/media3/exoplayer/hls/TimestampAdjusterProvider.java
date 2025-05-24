@@ -19,6 +19,7 @@ import static androidx.media3.common.util.TimestampAdjuster.MODE_SHARED;
 
 import android.util.SparseArray;
 import androidx.annotation.Nullable;
+import androidx.media3.common.util.Log;
 import androidx.media3.common.util.TimestampAdjuster;
 import androidx.media3.common.util.UnstableApi;
 
@@ -30,8 +31,14 @@ public final class TimestampAdjusterProvider {
   // longer required.
   private final SparseArray<TimestampAdjuster> timestampAdjusters;
 
-  public TimestampAdjusterProvider() {
+  private final SparseArray<TimestampAdjuster> timestampAdjustersAudio;
+
+  private boolean useDifferentTimestampAdjusterForAudio = false;
+
+  public TimestampAdjusterProvider(boolean useDifferentTimestampAdjusterForAudio) {
+    this.useDifferentTimestampAdjusterForAudio = useDifferentTimestampAdjusterForAudio;
     timestampAdjusters = new SparseArray<>();
+    timestampAdjustersAudio = new SparseArray<>();
   }
 
   /**
@@ -41,17 +48,46 @@ public final class TimestampAdjusterProvider {
    * @param discontinuitySequence The chunk's discontinuity sequence.
    * @return A {@link TimestampAdjuster}.
    */
-  public TimestampAdjuster getAdjuster(int discontinuitySequence) {
-    @Nullable TimestampAdjuster adjuster = timestampAdjusters.get(discontinuitySequence);
+  public TimestampAdjuster getAdjuster(int discontinuitySequence, String mimeType) {
+
+    @Nullable TimestampAdjuster adjuster;
+
+    boolean useAudioTimestampAdjuster = useDifferentTimestampAdjusterForAudio && isAudioMimeType(mimeType);
+
+    if (useAudioTimestampAdjuster) {
+      adjuster = timestampAdjustersAudio.get(discontinuitySequence);
+    } else {
+      adjuster = timestampAdjusters.get(discontinuitySequence);
+    }
+
     if (adjuster == null) {
       adjuster = new TimestampAdjuster(MODE_SHARED);
-      timestampAdjusters.put(discontinuitySequence, adjuster);
+
+      if (useAudioTimestampAdjuster) {
+        timestampAdjustersAudio.put(discontinuitySequence, adjuster);
+      } else {
+        timestampAdjusters.put(discontinuitySequence, adjuster);
+      }
     }
+
+    Log.d("TimestampAdjuster", "Providing adjuster for mimeType "+mimeType
+        + " disc: "+discontinuitySequence
+        + " useAudioTimestampAdjuster "+useAudioTimestampAdjuster);
     return adjuster;
   }
+
 
   /** Resets the provider. */
   public void reset() {
     timestampAdjusters.clear();
+    timestampAdjustersAudio.clear();
+  }
+
+
+  private boolean isAudioMimeType(String mimeType) {
+    if (mimeType != null && mimeType.contains("audio")) {
+      return true;
+    }
+    return false;
   }
 }

@@ -850,6 +850,23 @@ public final class DefaultHlsPlaylistTracker
           loadErrorHandlingPolicy.getMinimumLoadableRetryCount(mediaPlaylistLoadable.type));
     }
 
+    private boolean isAudioPlaylist(String baseUri) {
+      if (multivariantPlaylist != null && baseUri != null) {
+        List<HlsMultivariantPlaylist.Rendition> audios = multivariantPlaylist.audios;
+
+        if (audios != null) {
+          for (HlsMultivariantPlaylist.Rendition audio : audios) {
+            if (audio.url != null) {
+              if (baseUri.equals(audio.url.toString())) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     private void processLoadedPlaylist(
         HlsMediaPlaylist loadedPlaylist, LoadEventInfo loadEventInfo) {
       @Nullable HlsMediaPlaylist oldPlaylist = playlistSnapshot;
@@ -871,8 +888,9 @@ public final class DefaultHlsPlaylistTracker
           forceRetry = true;
           playlistError = new PlaylistResetException(playlistUrl);
         } else {
+          boolean isAudio = isAudioPlaylist(playlistSnapshot.baseUri);
           eventDispatcher.staleHlsManifestReceived(playlistSnapshot.mediaSequence,
-              lastSnapshotChangeMs, currentTimeMs);
+              lastSnapshotChangeMs, currentTimeMs, isAudio);
           if (currentTimeMs - lastSnapshotChangeMs
               > Util.usToMs(playlistSnapshot.targetDurationUs)
               * playlistStuckTargetDurationCoefficient) {

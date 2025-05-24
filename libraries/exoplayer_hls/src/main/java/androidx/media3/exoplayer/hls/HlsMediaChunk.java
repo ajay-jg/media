@@ -183,6 +183,13 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       id3Decoder = new Id3Decoder();
       scratchId3Data = new ParsableByteArray(Id3Decoder.ID3_HEADER_LENGTH);
     }
+
+    String mimeType = "";
+    if (format != null && format.sampleMimeType != null) {
+      mimeType = format.sampleMimeType;
+    }
+
+
     return new HlsMediaChunk(
         extractorFactory,
         mediaDataSource,
@@ -204,7 +211,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
         discontinuitySequenceNumber,
         mediaSegment.hasGapTag,
         isPrimaryTimestampSource,
-        /* timestampAdjuster= */ timestampAdjusterProvider.getAdjuster(discontinuitySequenceNumber),
+        /* timestampAdjuster= */ timestampAdjusterProvider.getAdjuster(discontinuitySequenceNumber, mimeType),
         timestampAdjusterInitializationTimeoutMs,
         mediaSegment.drmInitData,
         previousExtractor,

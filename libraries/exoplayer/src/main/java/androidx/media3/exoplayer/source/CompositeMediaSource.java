@@ -308,11 +308,12 @@ public abstract class CompositeMediaSource<T> extends BaseMediaSource {
     }
 
     @Override
-    public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId,
-        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+    public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaPeriodId mediaPeriodId,
+        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+        boolean isAudio) {
       if (maybeUpdateEventDispatcher(windowIndex, mediaPeriodId)) {
         mediaSourceEventDispatcher.staleHlsManifestReceived(lastUpdatedMediaSequenceNumber,
-            lastManifestChangeTimeMs, currentTimeMs);
+            lastManifestChangeTimeMs, currentTimeMs, isAudio);
       }
     }
 

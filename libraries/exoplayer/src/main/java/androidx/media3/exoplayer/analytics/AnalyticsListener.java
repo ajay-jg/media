@@ -1462,9 +1462,11 @@ public interface AnalyticsListener {
    * Called each time stale HLS manifest is received
    *
    * @param eventTime The event time.
+   * @param isAudio To distinguish video and audio manifest
    */
   default void onStaleHlsManifestReceived(EventTime eventTime,
-      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {}
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+      boolean isAudio) {}
 
   /**
    * Called after one or more events occurred.

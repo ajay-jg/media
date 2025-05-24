@@ -25,6 +25,8 @@ public final class DefaultHlsDataSourceFactory implements HlsDataSourceFactory {
 
   private final DataSource.Factory dataSourceFactory;
 
+  public static boolean ENABLE_SEPARATE_TIMESTAMP_ADJUSTER_FOR_AUDIO = false;
+
   /**
    * @param dataSourceFactory The {@link DataSource.Factory} to use for all data types.
    */

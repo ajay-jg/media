@@ -147,7 +147,8 @@ public interface MediaSourceEventListener {
 
   default void onStaleHlsManifestReceived(
       int windowIndex, @Nullable MediaPeriodId mediaPeriodId,
-      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {}
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+      boolean isAudio) {}
 
   /** Dispatches events to {@link MediaSourceEventListener MediaSourceEventListeners}. */
   class EventDispatcher {
@@ -515,14 +516,14 @@ public interface MediaSourceEventListener {
     }
 
     public void staleHlsManifestReceived(long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs,
-        long currentTimeMs) {
+        long currentTimeMs, boolean isAudio) {
       for (ListenerAndHandler listenerAndHandler : listenerAndHandlers) {
         MediaSourceEventListener listener = listenerAndHandler.listener;
         postOrRun(
             listenerAndHandler.handler,
             () -> listener.onStaleHlsManifestReceived(
                 windowIndex, mediaPeriodId,
-                lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs));
+                lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs, isAudio));
       }
     }
 

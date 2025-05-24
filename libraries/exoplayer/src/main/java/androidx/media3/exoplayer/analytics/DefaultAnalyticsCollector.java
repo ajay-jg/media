@@ -480,13 +480,14 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
 
   @Override
   public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaPeriodId mediaPeriodId,
-      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+      boolean isAudio) {
     EventTime eventTime = generateMediaPeriodEventTime(windowIndex, mediaPeriodId);
     sendEvent(
         eventTime,
         AnalyticsListener.EVENT_HS_HLS_STALE_MANIFEST_RECEIVED,
         listener -> listener.onStaleHlsManifestReceived(eventTime,
-            lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs));
+            lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs, isAudio));
   }
 
   // Player.Listener implementation.

@@ -552,7 +552,8 @@ public class EventLogger implements AnalyticsListener {
 
   @Override
   public void onStaleHlsManifestReceived(EventTime eventTime,
-      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+      long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+      boolean isAudio) {
     logd(eventTime, "onStaleHlsManifestReceived");
   }
 

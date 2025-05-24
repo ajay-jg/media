@@ -163,7 +163,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
     sampleStreamWrapperCallback = new SampleStreamWrapperCallback();
     compositeSequenceableLoader = compositeSequenceableLoaderFactory.empty();
     streamWrapperIndices = new IdentityHashMap<>();
-    timestampAdjusterProvider = new TimestampAdjusterProvider();
+    timestampAdjusterProvider = new TimestampAdjusterProvider(DefaultHlsDataSourceFactory.ENABLE_SEPARATE_TIMESTAMP_ADJUSTER_FOR_AUDIO);
     sampleStreamWrappers = new HlsSampleStreamWrapper[0];
     enabledSampleStreamWrappers = new HlsSampleStreamWrapper[0];
     manifestUrlIndicesPerWrapper = new int[0][];

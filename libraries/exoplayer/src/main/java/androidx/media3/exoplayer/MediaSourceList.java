@@ -673,7 +673,8 @@ import java.util.Set;
 
     @Override
     public void onStaleHlsManifestReceived(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId,
-        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs) {
+        long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
+        boolean isAudio) {
       @Nullable
       Pair<Integer, MediaSource.@NullableType MediaPeriodId> eventParameters =
           getEventParameters(windowIndex, mediaPeriodId);
@@ -681,7 +682,7 @@ import java.util.Set;
         eventHandler.post(
             () ->
                 eventListener.onStaleHlsManifestReceived(
-                    eventParameters.first, eventParameters.second, lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs));
+                    eventParameters.first, eventParameters.second, lastUpdatedMediaSequenceNumber, lastManifestChangeTimeMs, currentTimeMs, isAudio));
       }
     }
 
