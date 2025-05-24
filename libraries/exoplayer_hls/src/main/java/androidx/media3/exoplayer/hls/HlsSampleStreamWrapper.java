@@ -450,6 +450,23 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
             // the initially selected format.
             primarySampleQueueDirty = true;
           }
+
+          if (DefaultHlsDataSourceFactory.ENABLE_SEPARATE_TIMESTAMP_ADJUSTER_FOR_AUDIO) {
+            /*
+             * Fix for - https://hotstar.atlassian.net/browse/LO-9316
+             * In case of HLS fmp4 live streams, we observed that the audio loader remains in wait
+             * state inside TimestampAdjuster.sharedInitializeOrWait() if separate timestamp
+             * adjuster is used for audio. Normally with the chunkIndex check above, it leads to
+             * seek and thread comes out of wait state. But if there is single track for video, the
+             * above chunkIndex check will not result in seek and it leads to infinite loading
+             * issue.
+             * As a workaround, we are forcing the same seek flow for audio.
+             */
+            if ((lastMediaChunk.trackFormat.sampleMimeType != null) && lastMediaChunk.trackFormat.sampleMimeType.contains("audio")) {
+              primarySampleQueueDirty = true;
+            }
+          }
+
         } else {
           // The primary sample queue contains media buffered for the old primary track selection.
           primarySampleQueueDirty = true;
