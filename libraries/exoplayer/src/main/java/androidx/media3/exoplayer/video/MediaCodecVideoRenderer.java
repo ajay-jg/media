@@ -182,6 +182,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
   private final boolean deviceNeedsNoPostProcessWorkaround;
   private final VideoFrameReleaseControl videoFrameReleaseControl;
   private final VideoFrameReleaseControl.FrameReleaseInfo videoFrameReleaseInfo;
+  private final int mediaCodecDecoderInitRetryDelayMs;
   @Nullable private final Av1SampleDependencyParser av1SampleDependencyParser;
 
   /**
@@ -240,6 +241,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
     @Nullable private VideoSink videoSink;
     private boolean parseAv1SampleDependencies;
     private long lateThresholdToDropDecoderInputUs;
+    private int mediaCodecDecoderInitRetryDelayMs;
 
     /**
      * Creates a new builder.
@@ -252,6 +254,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
       this.codecAdapterFactory = MediaCodecAdapter.Factory.getDefault(context);
       this.assumedMinimumCodecOperatingRate = 30;
       this.lateThresholdToDropDecoderInputUs = C.TIME_UNSET;
+      this.mediaCodecDecoderInitRetryDelayMs = DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS;
     }
 
     /** Sets the {@link MediaCodecSelector decoder selector}. */
@@ -324,6 +327,13 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
       this.maxDroppedFramesToNotify = maxDroppedFramesToNotify;
       return this;
     }
+
+    @CanIgnoreReturnValue
+    public Builder setMediaCodecDecoderInitRetryDelayMs(int mediaCodecDecoderInitRetryDelayMs) {
+      this.mediaCodecDecoderInitRetryDelayMs = mediaCodecDecoderInitRetryDelayMs;
+      return this;
+    }
+
 
     /**
      * Sets a codec operating rate that all codecs instantiated by this renderer are assumed to meet
@@ -434,7 +444,8 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
             .setAllowedJoiningTimeMs(allowedJoiningTimeMs)
             .setEventHandler(eventHandler)
             .setEventListener(eventListener)
-            .setMaxDroppedFramesToNotify(maxDroppedFramesToNotify));
+            .setMaxDroppedFramesToNotify(maxDroppedFramesToNotify)
+            .setMediaCodecDecoderInitRetryDelayMs(DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS));
   }
 
   /**
@@ -480,7 +491,8 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
             .setEnableDecoderFallback(enableDecoderFallback)
             .setEventHandler(eventHandler)
             .setEventListener(eventListener)
-            .setMaxDroppedFramesToNotify(maxDroppedFramesToNotify));
+            .setMaxDroppedFramesToNotify(maxDroppedFramesToNotify)
+    );
   }
 
   /**
@@ -604,6 +616,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
         builder.lateThresholdToDropDecoderInputUs != C.TIME_UNSET
             ? -builder.lateThresholdToDropDecoderInputUs
             : C.TIME_UNSET;
+    mediaCodecDecoderInitRetryDelayMs = builder.mediaCodecDecoderInitRetryDelayMs;
   }
 
   // FrameTimingEvaluator methods

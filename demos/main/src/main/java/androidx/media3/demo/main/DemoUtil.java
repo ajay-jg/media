@@ -91,7 +91,8 @@ public final class DemoUtil {
         .setExtensionRendererMode(extensionRendererMode)
         .setHsDav1dThreadCount(0)
         .setHsDav1dFrameDelay(0)
-        .setHsDav1dIsCopyInputBuffer(false);
+        .setHsDav1dIsCopyInputBuffer(false)
+        .setMediaCodecDecoderInitRetryDelayMs(MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
   }
 
   @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)

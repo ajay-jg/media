@@ -264,7 +264,45 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
         eventHandler,
         eventListener,
         audioSink,
-        Util.SDK_INT >= 35 ? new LoudnessCodecController() : null);
+        //Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
+  }
+
+  /**
+   * Creates a new instance.
+   *
+   * @param context A context.
+   * @param codecAdapterFactory The {@link MediaCodecAdapter.Factory} used to create {@link
+   *     MediaCodecAdapter} instances.
+   * @param mediaCodecSelector A decoder selector.
+   * @param enableDecoderFallback Whether to enable fallback to lower-priority decoders if decoder
+   *     initialization fails. This may result in using a decoder that is slower/less efficient than
+   *     the primary decoder.
+   * @param eventHandler A handler to use when delivering events to {@code eventListener}. May be
+   *     null if delivery of events is not required.
+   * @param eventListener A listener of events. May be null if delivery of events is not required.
+   * @param audioSink The sink to which audio will be output.
+   * @param decoderInitRetryDelayMs Delay in ms before retrying decoder initialisation.
+   */
+  public MediaCodecAudioRenderer(
+      Context context,
+      MediaCodecAdapter.Factory codecAdapterFactory,
+      MediaCodecSelector mediaCodecSelector,
+      boolean enableDecoderFallback,
+      @Nullable Handler eventHandler,
+      @Nullable AudioRendererEventListener eventListener,
+      AudioSink audioSink,
+      int decoderInitRetryDelayMs) {
+    this(
+        context,
+        codecAdapterFactory,
+        mediaCodecSelector,
+        enableDecoderFallback,
+        eventHandler,
+        eventListener,
+        audioSink,
+        Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
+        decoderInitRetryDelayMs);
   }
 
   /**
@@ -293,12 +331,53 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
       @Nullable AudioRendererEventListener eventListener,
       AudioSink audioSink,
       @Nullable LoudnessCodecController loudnessCodecController) {
+    this(
+        context,
+        codecAdapterFactory,
+        mediaCodecSelector,
+        enableDecoderFallback,
+        eventHandler,
+        eventListener,
+        audioSink,
+        Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS
+    );
+  }
+
+  /**
+   * Creates a new instance.
+   *
+   * @param context A context.
+   * @param codecAdapterFactory The {@link MediaCodecAdapter.Factory} used to create {@link
+   *     MediaCodecAdapter} instances.
+   * @param mediaCodecSelector A decoder selector.
+   * @param enableDecoderFallback Whether to enable fallback to lower-priority decoders if decoder
+   *     initialization fails. This may result in using a decoder that is slower/less efficient than
+   *     the primary decoder.
+   * @param eventHandler A handler to use when delivering events to {@code eventListener}. May be
+   *     null if delivery of events is not required.
+   * @param eventListener A listener of events. May be null if delivery of events is not required.
+   * @param audioSink The sink to which audio will be output.
+   * @param loudnessCodecController The {@link LoudnessCodecController}, or null to not control
+   *     loudness.
+   */
+  public MediaCodecAudioRenderer(
+      Context context,
+      MediaCodecAdapter.Factory codecAdapterFactory,
+      MediaCodecSelector mediaCodecSelector,
+      boolean enableDecoderFallback,
+      @Nullable Handler eventHandler,
+      @Nullable AudioRendererEventListener eventListener,
+      AudioSink audioSink,
+      @Nullable LoudnessCodecController loudnessCodecController,
+      int decoderInitRetryDelayMs) {
     super(
         C.TRACK_TYPE_AUDIO,
         codecAdapterFactory,
         mediaCodecSelector,
         enableDecoderFallback,
-        /* assumedMinimumCodecOperatingRate= */ 44100);
+        /* assumedMinimumCodecOperatingRate= */ 44100,
+        decoderInitRetryDelayMs);
     context = context.getApplicationContext();
     this.context = context;
     this.audioSink = audioSink;

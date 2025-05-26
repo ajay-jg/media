@@ -399,6 +399,8 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
   private long lastProcessedOutputBufferTimeUs;
   private boolean needToNotifyOutputFormatChangeAfterStreamChange;
   private boolean experimentalEnableProcessedStreamChangedAtStart;
+  private int decoderInitRetryDelayMs;
+  public static final int DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS = 50;
 
   /**
    * @param trackType The {@link C.TrackType track type} that the renderer handles.
@@ -417,6 +419,35 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
       MediaCodecSelector mediaCodecSelector,
       boolean enableDecoderFallback,
       float assumedMinimumCodecOperatingRate) {
+    this(
+        trackType,
+        codecAdapterFactory,
+        mediaCodecSelector,
+        enableDecoderFallback,
+        assumedMinimumCodecOperatingRate,
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS
+    );
+  }
+
+  /**
+   * @param trackType The {@link C.TrackType track type} that the renderer handles.
+   * @param codecAdapterFactory A factory for {@link MediaCodecAdapter} instances.
+   * @param mediaCodecSelector A decoder selector.
+   * @param enableDecoderFallback Whether to enable fallback to lower-priority decoders if decoder
+   *     initialization fails. This may result in using a decoder that is less efficient or slower
+   *     than the primary decoder.
+   * @param assumedMinimumCodecOperatingRate A codec operating rate that all codecs instantiated by
+   *     this renderer are assumed to meet implicitly (i.e. without the operating rate being set
+   *     explicitly using {@link MediaFormat#KEY_OPERATING_RATE}).
+   * @param decoderInitRetryDelayMs A delay between decoder initialisation retry.
+   */
+  public MediaCodecRenderer(
+      @C.TrackType int trackType,
+      MediaCodecAdapter.Factory codecAdapterFactory,
+      MediaCodecSelector mediaCodecSelector,
+      boolean enableDecoderFallback,
+      float assumedMinimumCodecOperatingRate,
+      int decoderInitRetryDelayMs) {
     super(trackType);
     this.codecAdapterFactory = codecAdapterFactory;
     this.mediaCodecSelector = checkNotNull(mediaCodecSelector);
@@ -454,6 +485,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
     codecDrainState = DRAIN_STATE_NONE;
     codecDrainAction = DRAIN_ACTION_NONE;
     decoderCounters = new DecoderCounters();
+    this.decoderInitRetryDelayMs = max(decoderInitRetryDelayMs, DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
   }
 
   /**
@@ -1161,7 +1193,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
             // Workaround for [internal b/191966399].
             // See also https://github.com/google/ExoPlayer/issues/8696.
             Log.w(TAG, "Preferred decoder instantiation failed. Sleeping for 50ms then retrying.");
-            Thread.sleep(/* millis= */ 50);
+            Thread.sleep(/* millis= */ decoderInitRetryDelayMs);
             initCodec(codecInfo, crypto);
           } else {
             throw e;

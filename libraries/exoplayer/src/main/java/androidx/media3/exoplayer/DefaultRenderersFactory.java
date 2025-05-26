@@ -36,6 +36,7 @@ import androidx.media3.exoplayer.image.ImageDecoder;
 import androidx.media3.exoplayer.image.ImageRenderer;
 import androidx.media3.exoplayer.mediacodec.DefaultMediaCodecAdapterFactory;
 import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter;
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer;
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector;
 import androidx.media3.exoplayer.metadata.MetadataOutput;
 import androidx.media3.exoplayer.metadata.MetadataRenderer;
@@ -114,6 +115,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
   private int hsdav1dThreadCount;
   private int hsdav1dFrameDelay;
   private boolean hsDav1dIsCopyInputBuffer;
+  private int mediaCodecDecoderInitRetryDelayMs;
 
   /**
    * @param context A {@link Context}.
@@ -128,6 +130,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
     this.hsdav1dThreadCount = 0;
     this.hsdav1dFrameDelay = 0;
     this.hsDav1dIsCopyInputBuffer = false;
+    this.mediaCodecDecoderInitRetryDelayMs = MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS;
   }
 
   /**
@@ -183,6 +186,20 @@ public class DefaultRenderersFactory implements RenderersFactory {
    */
   public DefaultRenderersFactory setHsDav1dIsCopyInputBuffer(boolean isCopyInputBuffer) {
     this.hsDav1dIsCopyInputBuffer = isCopyInputBuffer;
+    return this;
+  }
+
+
+  /**
+   * Sets the delay in ms for media codec video decoder initialisation retry.
+   *
+   * @param delayMs Delay in ms.
+   * @return This factory, for convenience.
+   */
+  public DefaultRenderersFactory setMediaCodecDecoderInitRetryDelayMs(int delayMs) {
+    // Min value check is present in MediaCodecRenderer as well.
+    this.mediaCodecDecoderInitRetryDelayMs =
+        Math.max(delayMs, MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
     return this;
   }
 
@@ -462,6 +479,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
             .setMaxDroppedFramesToNotify(MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY)
             .experimentalSetParseAv1SampleDependencies(parseAv1SampleDependencies)
             .experimentalSetLateThresholdToDropDecoderInputUs(lateThresholdToDropDecoderInputUs)
+            .setMediaCodecDecoderInitRetryDelayMs(mediaCodecDecoderInitRetryDelayMs)
             .build();
     out.add(videoRenderer);
 
@@ -621,7 +639,8 @@ public class DefaultRenderersFactory implements RenderersFactory {
             enableDecoderFallback,
             eventHandler,
             eventListener,
-            audioSink);
+            audioSink,
+            mediaCodecDecoderInitRetryDelayMs);
     out.add(audioRenderer);
 
     if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) {
