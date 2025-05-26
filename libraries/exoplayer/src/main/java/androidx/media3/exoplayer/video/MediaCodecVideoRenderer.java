@@ -1717,6 +1717,11 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
           });
     }
 
+    long earlyUs = videoFrameReleaseInfo.getEarlyUs();
+    if (earlyUs < -300*1000L || earlyUs > 300*1000L) {
+      eventDispatcher.notifyVideoRenderTimestampJump(earlyUs);
+    }
+
     @VideoFrameReleaseControl.FrameReleaseAction
     int frameReleaseAction =
         videoFrameReleaseControl.getFrameReleaseAction(

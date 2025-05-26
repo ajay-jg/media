@@ -15,7 +15,7 @@
 }
 -dontnote androidx.media3.decoder.hsdav1d.HsDav1dVideoRenderer
  -keepclassmembers class androidx.media3.decoder.hsdav1d.HsDav1dVideoRenderer {
-   <init>(long, android.os.Handler, androidx.media3.exoplayer.video.VideoRendererEventListener, int);
+   <init>(long, android.os.Handler, androidx.media3.exoplayer.video.VideoRendererEventListener, int, int, int, boolean);
  }
 -dontnote androidx.media3.decoder.opus.LibopusAudioRenderer
 -keepclassmembers class androidx.media3.decoder.opus.LibopusAudioRenderer {
@@ -86,3 +86,6 @@
 -keepclasseswithmembers class androidx.media3.effect.DefaultVideoFrameProcessor$Factory$Builder {
   androidx.media3.effect.DefaultVideoFrameProcessor$Factory build();
 }
+-keep class androidx.media3.decoder.hsdav1d.HsDav1dDecoder {
+     public void onInputBufferConsumed(int);
+ }

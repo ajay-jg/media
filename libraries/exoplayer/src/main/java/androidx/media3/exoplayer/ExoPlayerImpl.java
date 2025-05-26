@@ -3006,6 +3006,11 @@ import java.util.concurrent.CopyOnWriteArraySet;
     }
 
     @Override
+    public void notifyVideoSinkTimestampJump(long earlyUs) {
+      analyticsCollector.notifyVideoSinkTimestampJump(earlyUs);
+    }
+
+    @Override
     public void onVideoDecoderReleased(String decoderName) {
       analyticsCollector.onVideoDecoderReleased(decoderName);
     }

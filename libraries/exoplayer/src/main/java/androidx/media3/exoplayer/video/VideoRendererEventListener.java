@@ -121,6 +121,14 @@ public interface VideoRendererEventListener {
   default void onRenderedFirstFrame(Object output, long renderTimeMs) {}
 
   /**
+   * Called when a video frame timestamp is too much different from expected timestamp.
+   *
+   * @param earlyUs It indicates how early the frame is. Positive value indicates early frame and
+   *                negative value indicates late frame.
+   */
+  default void notifyVideoSinkTimestampJump(long earlyUs) {}
+
+  /**
    * Called when a decoder is released.
    *
    * @param decoderName The decoder that was released.
@@ -228,6 +236,12 @@ public interface VideoRendererEventListener {
         // TODO: Replace this timestamp with the actual frame release time.
         long renderTimeMs = SystemClock.elapsedRealtime();
         handler.post(() -> castNonNull(listener).onRenderedFirstFrame(output, renderTimeMs));
+      }
+    }
+
+    public void notifyVideoRenderTimestampJump(long earlyUs) {
+      if (handler != null) {
+        handler.post(() -> castNonNull(listener).notifyVideoSinkTimestampJump(earlyUs));
       }
     }
 

@@ -88,7 +88,10 @@ public final class DemoUtil {
                 : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
             : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
     return new DefaultRenderersFactory(context.getApplicationContext())
-        .setExtensionRendererMode(extensionRendererMode);
+        .setExtensionRendererMode(extensionRendererMode)
+        .setHsDav1dThreadCount(0)
+        .setHsDav1dFrameDelay(0)
+        .setHsDav1dIsCopyInputBuffer(false);
   }
 
   @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)

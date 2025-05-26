@@ -111,6 +111,9 @@ public class DefaultRenderersFactory implements RenderersFactory {
   private boolean enableMediaCodecVideoRendererPrewarming;
   private boolean parseAv1SampleDependencies;
   private long lateThresholdToDropDecoderInputUs;
+  private int hsdav1dThreadCount;
+  private int hsdav1dFrameDelay;
+  private boolean hsDav1dIsCopyInputBuffer;
 
   /**
    * @param context A {@link Context}.
@@ -122,6 +125,9 @@ public class DefaultRenderersFactory implements RenderersFactory {
     allowedVideoJoiningTimeMs = DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS;
     mediaCodecSelector = MediaCodecSelector.DEFAULT;
     lateThresholdToDropDecoderInputUs = C.TIME_UNSET;
+    this.hsdav1dThreadCount = 0;
+    this.hsdav1dFrameDelay = 0;
+    this.hsDav1dIsCopyInputBuffer = false;
   }
 
   /**
@@ -138,6 +144,45 @@ public class DefaultRenderersFactory implements RenderersFactory {
   public final DefaultRenderersFactory setExtensionRendererMode(
       @ExtensionRendererMode int extensionRendererMode) {
     this.extensionRendererMode = extensionRendererMode;
+    return this;
+  }
+
+  /**
+   * Sets the number of threads for dav1d decoder in hsdav1d renderer.
+   **
+   * @param count Thread count to be set.
+   *              0 = Auto detect thread count.
+   * @return This factory, for convenience.
+   */
+  public DefaultRenderersFactory setHsDav1dThreadCount(int  count) {
+    if (count >= 0) {
+      this.hsdav1dThreadCount = count;
+    }
+    return this;
+  }
+
+  /**
+   * Sets the frame delay for dav1d decoder in hsdav1d renderer.
+   **
+   * @param frameCount Frame delay count to be set.
+   *              0 = Auto set frame delay.
+   * @return This factory, for convenience.
+   */
+  public DefaultRenderersFactory setHsDav1dFrameDelay(int frameCount) {
+    if (frameCount >= 0) {
+      this.hsdav1dFrameDelay = frameCount;
+    }
+    return this;
+  }
+
+  /**
+   * Sets the input copy flag for dav1d decoder in hsdav1d renderer.
+   **
+   * @param isCopyInputBuffer flag which controls copy/no-copy.
+   * @return This factory, for convenience.
+   */
+  public DefaultRenderersFactory setHsDav1dIsCopyInputBuffer(boolean isCopyInputBuffer) {
+    this.hsDav1dIsCopyInputBuffer = isCopyInputBuffer;
     return this;
   }
 
@@ -464,14 +509,20 @@ public class DefaultRenderersFactory implements RenderersFactory {
               long.class,
               android.os.Handler.class,
               androidx.media3.exoplayer.video.VideoRendererEventListener.class,
-              int.class);
+              int.class,
+              int.class,
+              int.class,
+              boolean.class);
       Renderer renderer =
           (Renderer)
               constructor.newInstance(
                   allowedVideoJoiningTimeMs,
                   eventHandler,
                   eventListener,
-                  MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY);
+                  MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY,
+                  hsdav1dThreadCount,
+                  hsdav1dFrameDelay,
+                  hsDav1dIsCopyInputBuffer);
       out.add(extensionRendererIndex++, renderer);
       Log.i(TAG, "Loaded HsDav1dVideoRenderer.");
     } catch (ClassNotFoundException e) {

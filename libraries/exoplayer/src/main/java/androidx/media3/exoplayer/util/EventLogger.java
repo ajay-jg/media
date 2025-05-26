@@ -557,6 +557,11 @@ public class EventLogger implements AnalyticsListener {
     logd(eventTime, "onStaleHlsManifestReceived");
   }
 
+  @Override
+  public void onVideoSinkTimestampJumpDetected(EventTime eventTime, long earlyUs) {
+    logd(eventTime, "onVideoSinkTimestampJumpDetected, earlyUs "+earlyUs);
+  }
+
   @UnstableApi
   @Override
   public void onRendererReadyChanged(

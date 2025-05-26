@@ -238,7 +238,8 @@ public interface AnalyticsListener {
     EVENT_RENDERER_READY_CHANGED,
     EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_START,
     EVENT_HS_CUSTOM_DRM_KEYS_DOWNLOAD_END,
-    EVENT_HS_HLS_STALE_MANIFEST_RECEIVED
+    EVENT_HS_HLS_STALE_MANIFEST_RECEIVED,
+    EVENT_HS_VIDEO_SINK_TIMESTAMP_JUMP,
   })
   @interface EventFlags {}
 
@@ -458,6 +459,9 @@ public interface AnalyticsListener {
 
   /** HLS stale manifest received */
   int EVENT_HS_HLS_STALE_MANIFEST_RECEIVED = 2003;
+
+  /** HLS stale manifest received */
+  int EVENT_HS_VIDEO_SINK_TIMESTAMP_JUMP = 2004;
 
   /** Time information of an event. */
   @UnstableApi
@@ -1467,6 +1471,15 @@ public interface AnalyticsListener {
   default void onStaleHlsManifestReceived(EventTime eventTime,
       long lastUpdatedMediaSequenceNumber, long lastManifestChangeTimeMs, long currentTimeMs,
       boolean isAudio) {}
+
+  /**
+   * Called each time timestamp jump above a threshold detected in video sink.
+   *
+   * @param eventTime The event time.
+   * @param earlyUs How early is the frame compared to timeline.
+   *                Positive value indicates early frame and negative value indicates late frame.
+   */
+  default void onVideoSinkTimestampJumpDetected(EventTime eventTime, long earlyUs) {}
 
   /**
    * Called after one or more events occurred.

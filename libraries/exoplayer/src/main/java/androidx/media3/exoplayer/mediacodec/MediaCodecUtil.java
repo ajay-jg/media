@@ -214,7 +214,7 @@ public final class MediaCodecUtil {
     if (MimeTypes.VIDEO_AV1.equals(mimeType)) {
       for (MediaCodecInfo decoderInfo : decoderInfos) {
         // Removing all non-hardware accelerated AV1 decoders.
-        if (!decoderInfo.hardwareAccelerated && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
+        if (!(decoderInfo.hardwareAccelerated || decoderInfo.name.equalsIgnoreCase("c2.android.av1-dav1d.decoder")) && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
           Log.e(TAG, "Hotstar: Will remove AV1 decoder from list: "+decoderInfo.name);
           swAv1DecoderInfos.add(decoderInfo);
         } else {
@@ -271,7 +271,7 @@ public final class MediaCodecUtil {
     if (MimeTypes.VIDEO_AV1.equals(alternativeMimeType)) {
       for (MediaCodecInfo decoderInfo : alternateDecoderInfos) {
         // Removing all non-hardware accelerated AV1 decoders.
-        if (!decoderInfo.hardwareAccelerated && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
+        if (!(decoderInfo.hardwareAccelerated || decoderInfo.name.equalsIgnoreCase("c2.android.av1-dav1d.decoder")) && MimeTypes.VIDEO_AV1.equals(decoderInfo.mimeType)) {
           Log.e(TAG, "Hotstar: Will remove AV1 decoder from list: "+decoderInfo.name);
           swAv1DecoderInfos.add(decoderInfo);
         } else {
