@@ -24,18 +24,19 @@ import androidx.media3.exoplayer.video.VideoRendererEventListener;
 
 public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
 
-
-  public static final int THREAD_COUNT_AUTODETECT = 1;
+  public static final int THREAD_COUNT_AUTODETECT = 0;
+  public static final int FRAME_DELAY_AUTODETECT = 0;
   private static final String TAG = "HsDav1dVideoRenderer";
 
   private static final int DEFAULT_NUM_OF_INPUT_BUFFERS = 4;
   private static final int DEFAULT_NUM_OF_OUTPUT_BUFFERS = 4;
+  private static final boolean IS_COPY_INPUT_BUFFER = false;
   /**
    * Default input buffer size in bytes, based on 720p resolution video compressed by a factor of
    * two.
    */
   private static final int DEFAULT_INPUT_BUFFER_SIZE =
-      Util.ceilDivide(1280, 64) * Util.ceilDivide(720, 64) * (64 * 64 * 3 / 2) / 2;
+      Util.ceilDivide(1920, 64) * Util.ceilDivide(1080, 64) * (64 * 64 * 3 / 2) / 2;
 
   /** The number of input buffers. */
   private final int numInputBuffers;
@@ -47,9 +48,15 @@ public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
 
   private final int threads;
 
+  private final int frameDelay;
+
+  private final boolean isCopyInputBuffer;
+
   @Nullable private HsDav1dDecoder decoder;
 
   private long renderedFrameCount = 0;
+
+  private Surface outputSurface = null;
 
   @Override
   public String getName() {
@@ -86,11 +93,12 @@ public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
     TraceUtil.beginSection("createDav1dDecoder");
     Log.d(TAG, "createDav1dDecoder, maxInputSize "+format.maxInputSize+""
         + " numInputBuffers "+numInputBuffers+" numOutputBuffers "+numOutputBuffers+""
-        + " threads "+threads);
+        + " threads "+threads+" frameDelay "+frameDelay+" isCopyInputBuffer "+isCopyInputBuffer);
     int initialInputBufferSize =
         format.maxInputSize != Format.NO_VALUE ? format.maxInputSize : DEFAULT_INPUT_BUFFER_SIZE;
     HsDav1dDecoder decoder =
-        new HsDav1dDecoder(numInputBuffers, numOutputBuffers, initialInputBufferSize, threads);
+        new HsDav1dDecoder(numInputBuffers, numOutputBuffers, initialInputBufferSize,
+            threads, frameDelay, isCopyInputBuffer);
     this.decoder = decoder;
     TraceUtil.endSection();
     return decoder;
@@ -132,6 +140,26 @@ public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
       long allowedJoiningTimeMs,
       @Nullable Handler eventHandler,
       @Nullable VideoRendererEventListener eventListener,
+      int maxDroppedFramesToNotify,
+      int threadCount,
+      int frameDelay,
+      boolean isCopyInputBuffer) {
+    this(
+        allowedJoiningTimeMs,
+        eventHandler,
+        eventListener,
+        maxDroppedFramesToNotify,
+        threadCount,
+        DEFAULT_NUM_OF_INPUT_BUFFERS,
+        DEFAULT_NUM_OF_OUTPUT_BUFFERS,
+        frameDelay,
+        isCopyInputBuffer);
+  }
+
+  public HsDav1dVideoRenderer(
+      long allowedJoiningTimeMs,
+      @Nullable Handler eventHandler,
+      @Nullable VideoRendererEventListener eventListener,
       int maxDroppedFramesToNotify) {
     this(
         allowedJoiningTimeMs,
@@ -140,7 +168,9 @@ public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
         maxDroppedFramesToNotify,
         THREAD_COUNT_AUTODETECT,
         DEFAULT_NUM_OF_INPUT_BUFFERS,
-        DEFAULT_NUM_OF_OUTPUT_BUFFERS);
+        DEFAULT_NUM_OF_OUTPUT_BUFFERS,
+        FRAME_DELAY_AUTODETECT,
+        IS_COPY_INPUT_BUFFER);
   }
 
   public HsDav1dVideoRenderer(
@@ -150,12 +180,16 @@ public class HsDav1dVideoRenderer extends DecoderVideoRenderer {
       int maxDroppedFramesToNotify,
       int threads,
       int numInputBuffers,
-      int numOutputBuffers) {
+      int numOutputBuffers,
+      int frameDelay,
+      boolean isCopyInputBuffer) {
     super(allowedJoiningTimeMs, eventHandler, eventListener, maxDroppedFramesToNotify);
     Log.d(TAG, "entered HsDav1dVideoRenderer constructor");
     this.threads = threads;
     this.numInputBuffers = numInputBuffers;
     this.numOutputBuffers = numOutputBuffers;
+    this.frameDelay = frameDelay;
+    this.isCopyInputBuffer = isCopyInputBuffer;
 
     Log.d(TAG, "Exiting HsDav1dVideoRenderer constructor");
   }

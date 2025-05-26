@@ -294,17 +294,23 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 extern "C" {
 #endif
 
-SWIGEXPORT jlong JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1initialize_1jni(JNIEnv *jenv, jclass jcls, jint jarg1, jobject jarg2) {
+SWIGEXPORT jlong JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1initialize_1jni(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jboolean jarg3, jobject jarg4, jobject jarg5) {
   jlong jresult = 0 ;
   int arg1 ;
-  jobject arg2 ;
+  int arg2 ;
+  bool arg3 ;
+  jobject arg4 ;
+  jobject arg5 ;
   void *result = 0 ;
   
   (void)jenv;
   (void)jcls;
   arg1 = (int)jarg1; 
-  arg2 = jarg2; 
-  result = (void *)hsdav1d_initialize_jni(arg1,SWIG_STD_MOVE(arg2));
+  arg2 = (int)jarg2; 
+  arg3 = jarg3 ? true : false; 
+  arg4 = jarg4; 
+  arg5 = jarg5; 
+  result = (void *)hsdav1d_initialize_jni(arg1,arg2,arg3,SWIG_STD_MOVE(arg4),SWIG_STD_MOVE(arg5));
   jresult = (jlong) (intptr_t) result;
   return jresult;
 }
@@ -320,11 +326,12 @@ SWIGEXPORT void JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGenerate
 }
 
 
-SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1send_1input(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2, jint jarg3) {
+SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1send_1input(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2, jint jarg3, jint jarg4) {
   jint jresult = 0 ;
   void *arg1 = (void *) 0 ;
   unsigned char *arg2 = (unsigned char *) 0 ;
   int arg3 ;
+  int arg4 ;
   int result;
   
   (void)jenv;
@@ -347,25 +354,24 @@ SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGenerate
   
   
   arg3 = (int)jarg3; 
-  result = (int)hsdav1d_send_input(arg1,(unsigned char const *)arg2,arg3);
+  arg4 = (int)jarg4; 
+  result = (int)hsdav1d_send_input(arg1,(unsigned char const *)arg2,arg3,arg4);
   jresult = (jint)result; 
   return jresult;
 }
 
 
-SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1decode_1process(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2, jboolean jarg3) {
+SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1decode_1process(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2) {
   jint jresult = 0 ;
   void *arg1 = (void *) 0 ;
   jobject arg2 ;
-  bool arg3 ;
   int result;
   
   (void)jenv;
   (void)jcls;
   arg1 = *(void **)&jarg1; 
   arg2 = jarg2; 
-  arg3 = jarg3 ? true : false; 
-  result = (int)hsdav1d_decode_process(arg1,SWIG_STD_MOVE(arg2),arg3);
+  result = (int)hsdav1d_decode_process(arg1,SWIG_STD_MOVE(arg2));
   jresult = (jint)result; 
   return jresult;
 }
@@ -381,11 +387,12 @@ SWIGEXPORT void JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGenerate
 }
 
 
-SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1render_1output_1frame(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2, jobject jarg3) {
+SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1render_1output_1frame(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2, jobject jarg3, jboolean jarg4) {
   jint jresult = 0 ;
   void *arg1 = (void *) 0 ;
   jobject arg2 ;
   jobject arg3 ;
+  bool arg4 ;
   int result;
   
   (void)jenv;
@@ -393,7 +400,8 @@ SWIGEXPORT jint JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGenerate
   arg1 = *(void **)&jarg1; 
   arg2 = jarg2; 
   arg3 = jarg3; 
-  result = (int)hsdav1d_render_output_frame(arg1,SWIG_STD_MOVE(arg2),SWIG_STD_MOVE(arg3));
+  arg4 = jarg4 ? true : false; 
+  result = (int)hsdav1d_render_output_frame(arg1,SWIG_STD_MOVE(arg2),SWIG_STD_MOVE(arg3),arg4);
   jresult = (jint)result; 
   return jresult;
 }
@@ -408,6 +416,16 @@ SWIGEXPORT void JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGenerate
   arg1 = *(void **)&jarg1; 
   arg2 = jarg2; 
   hsdav1d_release_output_frame(arg1,SWIG_STD_MOVE(arg2));
+}
+
+
+SWIGEXPORT void JNICALL Java_androidx_media3_decoder_hsdav1d_HsDavidSwigGeneratedJNI_hsdav1d_1received_1eos(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  void *arg1 = (void *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(void **)&jarg1; 
+  hsdav1d_received_eos(arg1);
 }
 
 

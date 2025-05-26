@@ -11,7 +11,6 @@
 #include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
-
 #include <stdarg.h>
 #include <jni.h>
 
@@ -20,11 +19,19 @@
 #include <mutex>
 #include <new>
 
+#include <map>
+
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
+
 #include "hsdav1d_wrapper.h"
+#include "hsdav1d_opengl_render_utils.h"
 
 void log_callback(void *context, int logLevel, const char* message);
 
 JavaVM *gHsDav1dJvm;
+
+#define USE_OPENGL_RENDERING (1)
 
 #define ENABLE_DEBUG_LOG (0)
 #define ENABLE_INFO_LOG  (1)
@@ -120,9 +127,6 @@ enum JniStatusCode {
   kJniStatusBitDepth10NotSupportedWithYuv=-10,
   kJniStatusJniException=-11,
 };
-
-
-
 
 // Manages frame buffer and reference information.
 class JniFrameBuffer {
@@ -328,20 +332,35 @@ class JniBufferManager {
   std::mutex mutex_;
 };
 
-
-
 struct JniContext {
   ~JniContext() {
     if (native_window) {
+      if (eglDisplay != nullptr) {
+        deInitializeEGL(eglDisplay, eglSurface, eglContext, eglProgram);
+        eglDisplay = nullptr;
+        eglSurface = nullptr;
+        eglContext = nullptr;
+        eglProgram = 0;
+      }
       ANativeWindow_release(native_window);
     }
   }
 
   bool MaybeAcquireNativeWindow(JNIEnv* env, jobject new_surface, bool isForceAquireSurface) {
+    std::lock_guard<std::mutex> lock(native_window_mutex);
     if ((surface == new_surface) && !isForceAquireSurface) {
       return true;
     }
     if (native_window) {
+      if (eglDisplay != nullptr) {
+        LOG_DEBUG(this, "Calling deInitializeEGL in MaybeAcquireNativeWindow")
+        deInitializeEGL(eglDisplay, eglSurface, eglContext, eglProgram);
+        eglDisplay = nullptr;
+        eglSurface = nullptr;
+        eglContext = nullptr;
+        eglProgram = 0;
+        LOG_DEBUG(this, "Calling deInitializeEGL Done")
+      }
       ANativeWindow_release(native_window);
     }
     native_window_width = 0;
@@ -353,7 +372,37 @@ struct JniContext {
       return false;
     }
     surface = new_surface;
+
     return true;
+  }
+
+  bool MaybeInitializeEglSurface() {
+    std::lock_guard<std::mutex> lock(native_window_mutex);
+    if (eglDisplay != nullptr) {
+      return true;
+    }
+
+    return initializeEGL(native_window, &eglSurface, &eglContext, &eglDisplay, &eglProgram);
+  }
+
+  void CheckAndReleaseNativeWindow() {
+    std::lock_guard<std::mutex> lock(native_window_mutex);
+
+    if (eglDisplay != nullptr) {
+      LOG_DEBUG(this, "Calling deInitializeEGL in CheckAndReleaseNativeWindow");
+      deInitializeEGL(eglDisplay, eglSurface, eglContext, eglProgram);
+      eglDisplay = nullptr;
+      eglSurface = nullptr;
+      eglContext = nullptr;
+      eglProgram = 0;
+      LOG_DEBUG(this, "Calling deInitializeEGL in done");
+    }
+
+    if (native_window) {
+      ANativeWindow_release(native_window);
+    }
+    native_window = nullptr;
+    surface = nullptr;
   }
 
   jfieldID decoder_private_field;
@@ -369,21 +418,37 @@ struct JniContext {
   Dav1dSettings dav1d_settings;
   int dav1d_status_code = 0;
 
+  std::mutex native_window_mutex;
   ANativeWindow* native_window = nullptr;
   jobject surface = nullptr;
   int native_window_width = 0;
   int native_window_height = 0;
 
+
+  EGLSurface eglSurface = nullptr;
+  EGLDisplay eglDisplay = nullptr;
+  EGLContext eglContext = nullptr;
+  GLuint     eglProgram = 0;
+
   JniStatusCode jni_status_code = kJniStatusOk;
 
   JNIEnv *env = nullptr;
-  jobject callbackObj = nullptr;
-//  jclass callbackClass = nullptr;
-//  jmethodID getCallbackMID = nullptr;
+  jobject log_callback_object = nullptr;
+  jmethodID log_callback_MID = nullptr;
 
   bool waiting_for_sequence_header = true;
 
-  Dav1dData data;
+  int sequence_header_width = 0;
+  int sequence_header_height = 0;
+  bool is_copy_input_buffer = true;
+
+  jobject input_buffer_consumed_callback_object = nullptr;
+  jmethodID input_buffer_consumed_callback_MID = nullptr;
+
+  std::map<const uint8_t *, int> inputBufferIdMap;
+  std::mutex inputBufferMutex;
+
+  Dav1dPicture *picture = nullptr;
 };
 
 class ScopedJNIEnv {
@@ -616,79 +681,153 @@ void log_callback(void *c, int logLevel, const char* message) {
   JniContext* context = static_cast<JniContext*> (c);
   ScopedJNIEnv scopedEnv;
   JNIEnv* env = scopedEnv.getEnv();
-  if (env == nullptr || context->callbackObj == nullptr) {
+  if (env == nullptr
+      || context->log_callback_object == nullptr
+      || context->log_callback_MID == nullptr) {
     return;
   }
 
-  jclass callbackClass = env->GetObjectClass(context->callbackObj);
-  if (callbackClass != nullptr) {
-    jmethodID getCallbackMID = env->GetStaticMethodID(
-        callbackClass, "callback", "(ILjava/lang/String;)V");
+  jstring jmessage = env->NewStringUTF(message);
+  jclass callbackClass = env->GetObjectClass(context->log_callback_object);
 
-    if (getCallbackMID != nullptr) {
-      jstring jmessage = env->NewStringUTF(message);
+  env->MonitorEnter(callbackClass);
+  env->CallStaticVoidMethod(callbackClass,
+                            context->log_callback_MID,
+                            logLevel,
+                            jmessage);
+  env->MonitorExit(callbackClass);
 
-      env->MonitorEnter(callbackClass); // Enter monitor
-      env->CallStaticVoidMethod(callbackClass,
-                                getCallbackMID,
-                                logLevel,
-                                jmessage);
-      env->MonitorExit(callbackClass); // Enter monitor
+  env->DeleteLocalRef(callbackClass);
+  env->DeleteLocalRef(jmessage);
+}
 
-      env->DeleteLocalRef(jmessage);
-    }
-    env->DeleteLocalRef(callbackClass);
+// Save the input buffer ID from Java layer.
+void save_input_buffer_id(JniContext* context, const uint8_t* buffer, int id) {
+  std::lock_guard<std::mutex> guard(context->inputBufferMutex);
+  context->inputBufferIdMap[buffer] = id;
+}
+
+// Return the input buffer ID from Java layer for the given buffer and forget it.
+// Return -1 if the ID is not found.
+int get_and_forget_input_buffer_id(JniContext* context, const uint8_t* buffer) {
+  std::lock_guard<std::mutex> guard(context->inputBufferMutex);
+  auto it = context->inputBufferIdMap.find(buffer);
+  if (it != context->inputBufferIdMap.end()) {
+    int id = it->second;
+    context->inputBufferIdMap.erase(it);
+    return id;
+  } else {
+    return -1;
   }
 }
 
-void dav1d_decoder_log_callback(void *cookie, const char *format, va_list ap) {
+// Dav1d library will call this function once the input buffer is consumed.
+void free_input_callback(const uint8_t *buffer, void *cookie) {
   JniContext* context = static_cast<JniContext*> (cookie);
-  char str[128];
-  vsnprintf(str, 127, format, ap);
-  LOG_WARN(context, "DAV1D: %s", str);
+
+  int buffer_id = get_and_forget_input_buffer_id(context, buffer);
+  LOG_DEBUG(context, "Received free_input_callback, buffer: %p, id %d, size %d",
+            buffer, buffer_id, context->inputBufferIdMap.size());
+  if (buffer_id < 0) {
+    return;
+  }
+
+  ScopedJNIEnv scopedEnv;
+  JNIEnv* env = scopedEnv.getEnv();
+  if (env == nullptr) {
+    LOG_DEBUG(context, "free_input_callback returning as env is null");
+    return;
+  }
+
+  // Return the ID of the corresponding buffer to Java layer.
+  env->CallVoidMethod(context->input_buffer_consumed_callback_object,
+                      context->input_buffer_consumed_callback_MID,
+                      buffer_id);
 }
 
-
-int hsdav1d_send_input(void* c, const unsigned char* buffer, int length) {
+int hsdav1d_send_input(void* c, const unsigned char* buffer, int length, int bufferId) {
   JniContext* context = static_cast<JniContext*> (c);
 
-  LOG_DEBUG(context, "Sending input, length %d, buffer %p", length, buffer);
+  uint8_t obu_type = (buffer[0] >> 3) & 0xf;
 
-  if (context->waiting_for_sequence_header) {
-    Dav1dSequenceHeader out;
-    memset(&out, 0x00, sizeof(Dav1dSequenceHeader));
-    int result = dav1d_parse_sequence_header(&out, buffer, length);
-    if (result == 0) {
-      LOG_DEBUG(context, "Found sequence header");
-      context->waiting_for_sequence_header = false;
+  LOG_DEBUG(context, "Sending input, length %d, buffer %p, id %d, waiting for header %d type %d",
+            length, buffer, bufferId, context->waiting_for_sequence_header, obu_type);
+
+  Dav1dSequenceHeader sequenceHeader;
+  memset(&sequenceHeader, 0x00, sizeof(Dav1dSequenceHeader));
+  int result = dav1d_parse_sequence_header(&sequenceHeader, buffer, length);
+  if (result == 0) {
+    LOG_DEBUG(context, "Found sequence header");
+    context->waiting_for_sequence_header = false;
+    if (context->sequence_header_width != 0 && context->sequence_header_height != 0) {
+      if (context->sequence_header_width != sequenceHeader.max_width
+          || context->sequence_header_height != sequenceHeader.max_height) {
+        LOG_INFO(context, "Resolution changed from sequence header, old %dX%d new %dX%d",
+                 context->sequence_header_width,
+                 context->sequence_header_height,
+                 sequenceHeader.max_width,
+                 sequenceHeader.max_height);
+
+        context->sequence_header_width = sequenceHeader.max_width;
+        context->sequence_header_height = sequenceHeader.max_height;
+        return kStatusTryAgain;
+      }
     } else {
-      LOG_WARN(context, "Did not find sequence header, returning");
-      return kStatusDecodeOnly;
+      LOG_INFO(context, "Saving resolution from sequence header, old %dX%d new %dX%d",
+               context->sequence_header_width,
+               context->sequence_header_height,
+               sequenceHeader.max_width,
+               sequenceHeader.max_height);
+      context->sequence_header_width = sequenceHeader.max_width;
+      context->sequence_header_height = sequenceHeader.max_height;
     }
+  } else if (context->waiting_for_sequence_header) {
+    LOG_WARN(context, "Did not find sequence header, returning");
+    return kStatusDecodeOnly;
   }
 
-  memset(&(context->data), 0x00, sizeof(Dav1dData));
-  context->data.data = buffer;
-  context->data.sz = length;
+  Dav1dData data;
+  if (context->is_copy_input_buffer) {
+    uint8_t *ptr = dav1d_data_create(&data, length);
+    if (ptr == nullptr) {
+      LOG_ERROR(context, "Failed to allocate memory for Dav1dData, returning error");
+      return kStatusError;
+    }
+    memcpy(ptr, buffer, length);
+  } else {
+    int status = dav1d_data_wrap(&data, buffer, length,
+                                 free_input_callback, (void*) context);
+    if (status != 0) {
+      LOG_ERROR(context, "Failed to wrap input buffer, status %d returning error", status);
+      return kStatusError;
+    }
+    save_input_buffer_id(context, buffer, bufferId);
+  }
 
-  context->dav1d_status_code = dav1d_send_data(context->dav1d_context, &(context->data));
+  context->dav1d_status_code = dav1d_send_data(context->dav1d_context, &data);
   if (context->dav1d_status_code != 0) {
     if (context->dav1d_status_code == DAV1D_ERR(EAGAIN)) {
-      LOG_WARN(context, "hsdav1d_send_input status AGAIN, data.sz %zu", context->data.sz);
-      dav1d_data_unref(&(context->data));
+      LOG_WARN(context, "hsdav1d_send_input status AGAIN, data.sz %zu", data.sz);
+      if (!context->is_copy_input_buffer) {
+        get_and_forget_input_buffer_id(context, buffer);
+      }
+      dav1d_data_unref(&data);
       return kStatusTryAgain;
     }
 
     // TODO - May be we need to handle this case.
-    LOG_ERROR(context, "hsdav1d_send_input context->dav1d_status_code %d", context->dav1d_status_code);
-    dav1d_data_unref(&(context->data));
+    LOG_DEBUG(context, "hsdav1d_send_input context->dav1d_status_code %d", context->dav1d_status_code);
+    if (!context->is_copy_input_buffer) {
+      get_and_forget_input_buffer_id(context, buffer);
+    }
+    dav1d_data_unref(&data);
     return kStatusError;
   }
 
-  if (context->data.sz > 0) {
-    LOG_WARN(context, "After sending input, data.sz %zu", context->data.sz);
+  if (data.sz > 0) {
+    LOG_WARN(context, "After sending input, data.sz %zu", data.sz);
     // TODO - May be we need to handle this case.
-    dav1d_data_unref(&(context->data));
+    dav1d_data_unref(&data);
   }
 
   return kStatusOk;
@@ -696,51 +835,42 @@ int hsdav1d_send_input(void* c, const unsigned char* buffer, int length) {
 
 
 
-int hsdav1d_decode_process(void* c, jobject jOutputBuffer, bool isDecodeOnly) {
+int hsdav1d_decode_process(void* c, jobject jOutputBuffer) {
   JniContext* context = static_cast<JniContext*> (c);
-
-  Dav1dPicture *picture;
   int result = kStatusOk;
 
-  LOG_DEBUG(context, "hsdav1d_decode_process start 111, before dav1d_get_picture, waiting for sequence header %d",
+  LOG_DEBUG(context, "hsdav1d_decode_process start, before dav1d_get_picture, waiting for sequence header %d",
             context->waiting_for_sequence_header);
-  if (context->waiting_for_sequence_header) {
-    return kStatusDecodeOnly;
-  }
 
-  picture = (Dav1dPicture *) calloc(1, sizeof(Dav1dPicture));
-  context->dav1d_status_code = dav1d_get_picture(context->dav1d_context, picture);
+  memset(context->picture, 0x00, sizeof(Dav1dPicture));
+  context->dav1d_status_code = dav1d_get_picture(context->dav1d_context, context->picture);
 
   LOG_DEBUG(context, "dav1d_get_picture done, context->dav1d_status_code %d",
             context->dav1d_status_code);
 
   if (context->dav1d_status_code != 0) {
     if (context->dav1d_status_code == DAV1D_ERR(EAGAIN)) {
-      LOG_WARN(context, "hsdav1d_decode_process status AGAIN");
-      dav1d_picture_unref(picture);
-      free(picture);
+      LOG_DEBUG(context, "hsdav1d_decode_process status AGAIN");
+      dav1d_picture_unref(context->picture);
       return kStatusTryAgain;
     }
 
-    LOG_DEBUG(context, "hsdav1d_decode_process status %d", context->dav1d_status_code);
-    dav1d_picture_unref(picture);
-    free(picture);
+    LOG_ERROR(context, "hsdav1d_decode_process status %d", context->dav1d_status_code);
+    dav1d_picture_unref(context->picture);
     return kStatusError;
   }
 
-  if (isDecodeOnly || picture->data[kPlaneY] == nullptr) {
-    LOG_DEBUG(context,  "Decode only, isNullPtr %d", (picture->data[kPlaneY] == nullptr));
+  if (context->picture->data[kPlaneY] == nullptr) {
+    LOG_DEBUG(context, "Decode only, isNullPtr %d", (context->picture->data[kPlaneY] == nullptr));
 
-    dav1d_picture_unref(picture);
-    free(picture);
+    dav1d_picture_unref(context->picture);
     return kStatusDecodeOnly;
   }
 
-  result = update_output_buffer(context, jOutputBuffer, picture);
+  result = update_output_buffer(context, jOutputBuffer, context->picture);
 
   // Reference count is already incremented for JNI buffer while updating output buffer. So calling unref.
-  dav1d_picture_unref(picture);
-  free(picture);
+  dav1d_picture_unref(context->picture);
 
   return result;
 }
@@ -748,43 +878,14 @@ int hsdav1d_decode_process(void* c, jobject jOutputBuffer, bool isDecodeOnly) {
 void hsdav1d_flush_decoder(void* c) {
   JniContext* context = static_cast<JniContext*> (c);
 
-  Dav1dPicture picture;
-  int status = 0;
-  int count = 0;
-  LOG_DEBUG(context, "Flushing decoder, count free %d all %d",
-            context->buffer_manager.GetFreeBufferCount(), context->buffer_manager.GetAllBufferCount());
+  LOG_DEBUG(context, "Flushing decoder");
   dav1d_flush(context->dav1d_context);
   context->waiting_for_sequence_header = true;
-
-  LOG_DEBUG(context, "Getting pictures after flushing decoder, count free %d all %d",
-            context->buffer_manager.GetFreeBufferCount(), context->buffer_manager.GetAllBufferCount());
-  do {
-    memset(&picture, 0x00, sizeof(Dav1dPicture));
-    status = dav1d_get_picture(context->dav1d_context, &picture);
-    dav1d_picture_unref(&picture);
-
-    if (status == 0) {
-      count++;
-    }
-  } while (status == 0);
-  LOG_DEBUG(context, "Got %d pictures after flushing decoder", count);
-
-  if (context->buffer_manager.GetFreeBufferCount() != context->buffer_manager.GetAllBufferCount()) {
-    for (int i=0; i<context->buffer_manager.GetAllBufferCount(); i++) {
-      LOG_DEBUG(context, "buffer id %d, reference count %d",
-                i, context->buffer_manager.GetBufferReferenceCount(i));
-
-      while (context->buffer_manager.GetBufferReferenceCount(i) > 0) {
-        LOG_DEBUG(context, "buffer id %d, Releasing buffer reference count %d",
-                  i, context->buffer_manager.GetBufferReferenceCount(i));
-        context->buffer_manager.ReleaseBuffer(i);
-      }
-    }
-  }
 }
 
 
-int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer) {
+int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer,
+                                bool needsSurfaceUpdate) {
   JniContext* context = static_cast<JniContext*> (c);
 
   JNIEnv *env = context->env;
@@ -804,25 +905,79 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
     return kStatusOk;
   }
 
+#if USE_OPENGL_RENDERING
+  if (!context->MaybeAcquireNativeWindow(env, jSurface, needsSurfaceUpdate)) {
+    LOG_ERROR(context,
+              "hsdav1d_render_output_frame MaybeAcquireNativeWindow failed, isForceAquireSurface %d",
+              false);
+    return kStatusError;
+  }
+
+  if (needsSurfaceUpdate ||
+      context->native_window_width != jni_buffer->DisplayedWidth(kPlaneY) ||
+      context->native_window_height != jni_buffer->DisplayedHeight(kPlaneY)) {
+    if (ANativeWindow_setBuffersGeometry(
+        context->native_window, jni_buffer->DisplayedWidth(kPlaneY),
+        jni_buffer->DisplayedHeight(kPlaneY), /*kImageFormatYV12*/WINDOW_FORMAT_RGBX_8888)) {
+      context->jni_status_code = kJniStatusANativeWindowError;
+      LOG_ERROR(context, "ANativeWindow_setBuffersGeometry failed, buffer id %d w %d h %d",
+                buffer_id, jni_buffer->DisplayedWidth(kPlaneY),
+                jni_buffer->DisplayedHeight(kPlaneY));
+      return kStatusError;
+    }
+    context->native_window_width = jni_buffer->DisplayedWidth(kPlaneY);
+    context->native_window_height = jni_buffer->DisplayedHeight(kPlaneY);
+  }
+
+  if (!context->MaybeInitializeEglSurface()) {
+    LOG_ERROR(context,
+              "hsdav1d_render_output_frame MaybeInitializeEglSurface failed");
+    return kStatusError;
+  }
+
+  LOG_DEBUG(context, "hsdav1d_render_output_frame Calling renderYUV420ToSurface, "
+                     "w %d h %d stride %d %d %d needsSurfaceUpdate %d",
+            jni_buffer->DisplayedWidth(kPlaneY), jni_buffer->DisplayedHeight(kPlaneY),
+            jni_buffer->Stride(kPlaneY), jni_buffer->Stride(kPlaneU),jni_buffer->Stride(kPlaneV),
+            needsSurfaceUpdate);
+
+  renderYUV420ToSurface(context->eglSurface,
+                        context->eglDisplay,
+                        context->eglProgram,
+                        jni_buffer->DisplayedWidth(kPlaneY),
+                        jni_buffer->DisplayedHeight(kPlaneY),
+                        jni_buffer->Plane(kPlaneY),
+                        jni_buffer->Plane(kPlaneU),
+                        jni_buffer->Plane(kPlaneV),
+                        jni_buffer->Stride(kPlaneY),
+                        jni_buffer->Stride(kPlaneU),
+                        jni_buffer->Stride(kPlaneV));
+
+  LOG_DEBUG(context, "hsdav1d_render_output_frame Called renderYUV420ToSurface");
+
+  return kStatusOk;
+
+#else //USE_OPENGL_RENDERING
   bool isForceAquireSurface = false;
   int acquireNativeWindowRetryCount = 2;
   ANativeWindow_Buffer native_window_buffer;
 
   do {
     if (!context->MaybeAcquireNativeWindow(env, jSurface, isForceAquireSurface)) {
-      LOG_ERROR(context, "hsdav1d_render_output_frame MaybeAcquireNativeWindow failed, isForceAquireSurface %d", isForceAquireSurface);
+      LOG_ERROR(context, "hsdav1d_render_output_frame MaybeAcquireNativeWindow failed, isForceAquireSurface %d",
+                isForceAquireSurface);
       return kStatusError;
     }
 
     if (context->native_window_width != jni_buffer->DisplayedWidth(kPlaneY) ||
         context->native_window_height != jni_buffer->DisplayedHeight(kPlaneY)) {
       if (ANativeWindow_setBuffersGeometry(
-          context->native_window, jni_buffer->DisplayedWidth(kPlaneY),
-          jni_buffer->DisplayedHeight(kPlaneY), kImageFormatYV12)) {
+              context->native_window, jni_buffer->DisplayedWidth(kPlaneY),
+              jni_buffer->DisplayedHeight(kPlaneY), kImageFormatYV12)) {
         context->jni_status_code = kJniStatusANativeWindowError;
         LOG_ERROR(context, "ANativeWindow_setBuffersGeometry failed, buffer id %d w %d h %d, isForceAquireSurface %d",
-                  buffer_id, jni_buffer->DisplayedWidth(kPlaneY),
-                  jni_buffer->DisplayedHeight(kPlaneY), isForceAquireSurface);
+          buffer_id, jni_buffer->DisplayedWidth(kPlaneY),
+          jni_buffer->DisplayedHeight(kPlaneY), isForceAquireSurface);
         return kStatusError;
       }
       context->native_window_width = jni_buffer->DisplayedWidth(kPlaneY);
@@ -830,13 +985,13 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
     }
 
     if (ANativeWindow_lock(context->native_window, &native_window_buffer,
-        /*inOutDirtyBounds=*/nullptr) ||
+                          /*inOutDirtyBounds=*/nullptr) ||
         native_window_buffer.bits == nullptr) {
 
       if (isForceAquireSurface) {
         LOG_ERROR(context, "ANativeWindow_lock failed, buffer id %d w %d h %d, isForceAquireSurface %d",
-                  buffer_id, jni_buffer->DisplayedWidth(kPlaneY),
-                  jni_buffer->DisplayedHeight(kPlaneY), isForceAquireSurface);
+                 buffer_id, jni_buffer->DisplayedWidth(kPlaneY),
+                 jni_buffer->DisplayedHeight(kPlaneY), isForceAquireSurface);
         context->jni_status_code = kJniStatusANativeWindowError;
         return kStatusError;
       } else {
@@ -859,8 +1014,8 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
             jni_buffer->DisplayedHeight(kPlaneY));
 
   LOG_DEBUG(context, "hsdav1d_render_output_frame Y stride %d w %d h %d",
-            jni_buffer->Stride(kPlaneY), jni_buffer->DisplayedWidth(kPlaneY),
-            jni_buffer->DisplayedHeight(kPlaneY));
+      jni_buffer->Stride(kPlaneY), jni_buffer->DisplayedWidth(kPlaneY),
+      jni_buffer->DisplayedHeight(kPlaneY));
 
   const int y_plane_size =
       native_window_buffer.stride * native_window_buffer.height;
@@ -883,8 +1038,8 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
       v_plane_height);
 
   LOG_DEBUG(context, "hsdav1d_render_output_frame V stride %d w %d h %d min %d",
-            jni_buffer->Stride(kPlaneV), jni_buffer->DisplayedWidth(kPlaneV),
-            jni_buffer->DisplayedHeight(kPlaneV), v_plane_height);
+      jni_buffer->Stride(kPlaneV), jni_buffer->DisplayedWidth(kPlaneV),
+      jni_buffer->DisplayedHeight(kPlaneV), v_plane_height);
 
   const int v_plane_size = v_plane_height * native_window_buffer_uv_stride;
 
@@ -898,8 +1053,8 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
             u_plane_height);
 
   LOG_DEBUG(context, "hsdav1d_render_output_frame U stride %d w %d h %d min %d",
-            jni_buffer->Stride(kPlaneU), jni_buffer->DisplayedWidth(kPlaneU),
-            jni_buffer->DisplayedHeight(kPlaneU), u_plane_height);
+      jni_buffer->Stride(kPlaneU), jni_buffer->DisplayedWidth(kPlaneU),
+      jni_buffer->DisplayedHeight(kPlaneU), u_plane_height);
 
   if (ANativeWindow_unlockAndPost(context->native_window)) {
     context->jni_status_code = kJniStatusANativeWindowError;
@@ -907,6 +1062,7 @@ int hsdav1d_render_output_frame(void* c, jobject jSurface, jobject jOutputBuffer
   }
 
   return kStatusOk;
+#endif //USE_OPENGL_RENDERING
 }
 
 
@@ -934,7 +1090,11 @@ void hsdav1d_release_output_frame(void* c, jobject jOutputBuffer) {
   }
 }
 
-void* hsdav1d_initialize_jni(int nThreads, jobject callback) {
+void* hsdav1d_initialize_jni(int nThreads,
+                             int maxFrameDelay,
+                             bool isCopyInputBuffer,
+                             jobject logCallback,
+                             jobject inputBufferReleaseCallback) {
   JNIEnv *env;
   JniContext* context = new (std::nothrow) JniContext();
   if (gHsDav1dJvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
@@ -943,7 +1103,53 @@ void* hsdav1d_initialize_jni(int nThreads, jobject callback) {
   }
 
   context->env = env;
-  context->callbackObj = env->NewGlobalRef(callback);
+
+  context->picture = (Dav1dPicture *) calloc(1, sizeof(Dav1dPicture));
+  if (context->picture == nullptr) {
+    delete context;
+    return nullptr;
+  }
+
+  if (!isCopyInputBuffer) {
+    if (inputBufferReleaseCallback == nullptr) {
+      free(context->picture);
+      delete context;
+      return nullptr;
+    }
+    context->is_copy_input_buffer = false;
+    context->input_buffer_consumed_callback_object = env->NewGlobalRef(inputBufferReleaseCallback);
+    if (context->input_buffer_consumed_callback_object == nullptr) {
+      free(context->picture);
+      delete context;
+      return nullptr;
+    }
+
+    const jclass inputBufferCallbackClass = env->GetObjectClass(context->input_buffer_consumed_callback_object);
+    if (inputBufferCallbackClass != nullptr) {
+      context->input_buffer_consumed_callback_MID = env->GetMethodID(
+          inputBufferCallbackClass,
+          "onInputBufferConsumed", "(I)V");
+      env->DeleteLocalRef(inputBufferCallbackClass);
+    } else {
+      env->DeleteGlobalRef(context->input_buffer_consumed_callback_object);
+      free(context->picture);
+      delete context;
+      return nullptr;
+    }
+  } else {
+    context->is_copy_input_buffer = true;
+    context->input_buffer_consumed_callback_object = nullptr;
+  }
+
+  context->log_callback_object = env->NewGlobalRef(logCallback);
+  if (context->log_callback_object != nullptr) {
+    const jclass log_callback_class = env->GetObjectClass(context->log_callback_object);
+    if (log_callback_class != nullptr) {
+      context->log_callback_MID = env->GetStaticMethodID(
+          log_callback_class, "callback", "(ILjava/lang/String;)V");
+      env->DeleteLocalRef(log_callback_class);
+    }
+  }
 
   // Populate JNI References.
   const jclass outputBufferClass = env->FindClass(
@@ -964,7 +1170,8 @@ void* hsdav1d_initialize_jni(int nThreads, jobject callback) {
   }
 
   //Print version
-  LOG_INFO(context, "Dav1d version %s", dav1d_version());
+  LOG_INFO(context, "Dav1d version %s, Initializing with threads %d frame delay %d copyInput %d",
+           dav1d_version(), nThreads, maxFrameDelay, isCopyInputBuffer);
 
   // Create decoder
   dav1d_default_settings(&(context->dav1d_settings));
@@ -972,22 +1179,46 @@ void* hsdav1d_initialize_jni(int nThreads, jobject callback) {
   context->dav1d_settings.allocator.alloc_picture_callback = dav1d_alloc_picture_callback;
   context->dav1d_settings.allocator.release_picture_callback = dav1d_release_picture_callback;
 
-  //context->dav1d_settings.logger.callback = dav1d_decoder_log_callback;
-  //context->dav1d_settings.logger.cookie = static_cast<void*> (context);
-  //context->dav1d_settings.apply_grain = false;
-
   context->dav1d_settings.n_threads = nThreads;
+  context->dav1d_settings.max_frame_delay = maxFrameDelay;
 
   context->dav1d_status_code = dav1d_open(&(context->dav1d_context), &(context->dav1d_settings));
 
+  LOG_DEBUG(context, "Calculated frame delay %d", dav1d_get_frame_delay(&(context->dav1d_settings)));
+
   return ((void*) context);
+}
+
+void hsdav1d_received_eos(void* c) {
+  JniContext* context = static_cast<JniContext*> (c);
+  if (context == nullptr) {
+    return;
+  }
+
+  context->CheckAndReleaseNativeWindow();
 }
 
 void hsdav1d_cleanup_jni(void* c) {
   JniContext* context = static_cast<JniContext*> (c);
   JNIEnv *env = context->env;
-  if (context->callbackObj != nullptr) {
-    env->DeleteGlobalRef(context->callbackObj);
+
+  if (context->dav1d_context != nullptr) {
+    dav1d_close(&(context->dav1d_context));
+    context->dav1d_context = nullptr;
   }
+
+  if (context->log_callback_object != nullptr) {
+    env->DeleteGlobalRef(context->log_callback_object);
+  }
+
+  if (context->input_buffer_consumed_callback_object != nullptr) {
+    env->DeleteGlobalRef(context->input_buffer_consumed_callback_object);
+  }
+
+  if (context->picture != nullptr) {
+    free(context->picture);
+    context->picture = nullptr;
+  }
+
   delete context;
 }

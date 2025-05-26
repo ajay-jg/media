@@ -49,10 +49,14 @@ if(NOT DEFINED DAV1D_LIB_DEPENDENCY_DIR)
     message(WARNING "Variable DAV1D_LIB_DEPENDENCY_DIR is not defined")
 endif()
 
+find_library(GLESv2-lib GLESv2)
+find_library(EGL-lib EGL)
+
 # Build libhsdav1dJNI.
 add_library(hsdav1dJNI
         SHARED
         hsdav1d_jni_swig_generated.cpp
+        hsdav1d_opengl_render_utils.cpp
         hsdav1d_wrapper.cpp
         hsdav1d_wrapper.h)
 
@@ -67,6 +71,8 @@ foreach(ABI ${ANDROID_ABIS})
 
     if(ANDROID_ABI STREQUAL ${ABI})
         target_link_libraries(hsdav1dJNI
+                PRIVATE ${GLESv2-lib}
+                PRIVATE ${EGL-lib}
                 PRIVATE Dav1dLib_${ABI}
                 PRIVATE android)
     endif()

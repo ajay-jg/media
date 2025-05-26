@@ -9,11 +9,12 @@
 package androidx.media3.decoder.hsdav1d;
 
 public class HsDavidSwigGeneratedJNI {
-  public final static native long hsdav1d_initialize_jni(int jarg1, HsDav1dJniLogger jarg2);
+  public final static native long hsdav1d_initialize_jni(int jarg1, int jarg2, boolean jarg3, java.lang.Object jarg4, java.lang.Object jarg5);
   public final static native void hsdav1d_cleanup_jni(long jarg1);
-  public final static native int hsdav1d_send_input(long jarg1, java.nio.ByteBuffer jarg2, int jarg3);
-  public final static native int hsdav1d_decode_process(long jarg1, androidx.media3.decoder.VideoDecoderOutputBuffer jarg2, boolean jarg3);
+  public final static native int hsdav1d_send_input(long jarg1, java.nio.ByteBuffer jarg2, int jarg3, int jarg4);
+  public final static native int hsdav1d_decode_process(long jarg1, androidx.media3.decoder.VideoDecoderOutputBuffer jarg2);
   public final static native void hsdav1d_flush_decoder(long jarg1);
-  public final static native int hsdav1d_render_output_frame(long jarg1, android.view.Surface jarg2, androidx.media3.decoder.VideoDecoderOutputBuffer jarg3);
+  public final static native int hsdav1d_render_output_frame(long jarg1, android.view.Surface jarg2, androidx.media3.decoder.VideoDecoderOutputBuffer jarg3, boolean jarg4);
   public final static native void hsdav1d_release_output_frame(long jarg1, androidx.media3.decoder.VideoDecoderOutputBuffer jarg2);
+  public final static native void hsdav1d_received_eos(long jarg1);
 }

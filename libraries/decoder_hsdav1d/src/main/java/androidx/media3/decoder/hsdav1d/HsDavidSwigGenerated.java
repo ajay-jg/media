@@ -9,32 +9,36 @@
 package androidx.media3.decoder.hsdav1d;
 
 public class HsDavidSwigGenerated {
-  public static long hsdav1d_initialize_jni(int nThreads, HsDav1dJniLogger callback) {
-  return HsDavidSwigGeneratedJNI.hsdav1d_initialize_jni(nThreads, callback);
+  public static long hsdav1d_initialize_jni(int nThreads, int maxFrameDelay, boolean isCopyInputBuffer, java.lang.Object logCallback, java.lang.Object inputBufferReleaseCallback) {
+  return HsDavidSwigGeneratedJNI.hsdav1d_initialize_jni(nThreads, maxFrameDelay, isCopyInputBuffer, logCallback, inputBufferReleaseCallback);
 }
 
   public static void hsdav1d_cleanup_jni(long c) {
     HsDavidSwigGeneratedJNI.hsdav1d_cleanup_jni(c);
   }
 
-  public static int hsdav1d_send_input(long c, java.nio.ByteBuffer buffer, int length) {
-    return HsDavidSwigGeneratedJNI.hsdav1d_send_input(c, buffer, length);
+  public static int hsdav1d_send_input(long c, java.nio.ByteBuffer buffer, int length, int bufferId) {
+    return HsDavidSwigGeneratedJNI.hsdav1d_send_input(c, buffer, length, bufferId);
   }
 
-  public static int hsdav1d_decode_process(long c, androidx.media3.decoder.VideoDecoderOutputBuffer jOutputBuffer, boolean isDecodeOnly) {
-    return HsDavidSwigGeneratedJNI.hsdav1d_decode_process(c, jOutputBuffer, isDecodeOnly);
+  public static int hsdav1d_decode_process(long c, androidx.media3.decoder.VideoDecoderOutputBuffer jOutputBuffer) {
+    return HsDavidSwigGeneratedJNI.hsdav1d_decode_process(c, jOutputBuffer);
   }
 
   public static void hsdav1d_flush_decoder(long c) {
     HsDavidSwigGeneratedJNI.hsdav1d_flush_decoder(c);
   }
 
-  public static int hsdav1d_render_output_frame(long c, android.view.Surface jSurface, androidx.media3.decoder.VideoDecoderOutputBuffer jOutputBuffer) {
-    return HsDavidSwigGeneratedJNI.hsdav1d_render_output_frame(c, jSurface, jOutputBuffer);
+  public static int hsdav1d_render_output_frame(long c, android.view.Surface jSurface, androidx.media3.decoder.VideoDecoderOutputBuffer jOutputBuffer, boolean needsSurfaceUpdate) {
+    return HsDavidSwigGeneratedJNI.hsdav1d_render_output_frame(c, jSurface, jOutputBuffer, needsSurfaceUpdate);
   }
 
   public static void hsdav1d_release_output_frame(long c, androidx.media3.decoder.VideoDecoderOutputBuffer jOutputBuffer) {
     HsDavidSwigGeneratedJNI.hsdav1d_release_output_frame(c, jOutputBuffer);
+  }
+
+  public static void hsdav1d_received_eos(long c) {
+    HsDavidSwigGeneratedJNI.hsdav1d_received_eos(c);
   }
 
 }
