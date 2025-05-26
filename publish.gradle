@@ -20,13 +20,17 @@ afterEvaluate {
         publishing {
             repositories {
                 maven {
-                    url = findProperty('mavenRepo') ?: "${buildDir}/repo"
+                    url 'https://nexus.hotstar.com/repository/android-snapshot/'
+                    credentials {
+                        username = 'android'
+                        password = 'UZJQyfcq@7558'
+                    }
                 }
             }
             publications {
                 release(MavenPublication) {
                     from components.release
-                    groupId = 'androidx.media3'
+                    groupId = 'hotstar.androidx.media3'
                     artifactId = findProperty('releaseArtifactId') ?: ''
                     version = findProperty('releaseVersion') ?: ''
                     pom {
