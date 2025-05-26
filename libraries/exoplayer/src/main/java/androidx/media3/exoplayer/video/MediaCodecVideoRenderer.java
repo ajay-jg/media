@@ -242,7 +242,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
     private boolean parseAv1SampleDependencies;
     private long lateThresholdToDropDecoderInputUs;
     private int mediaCodecDecoderInitRetryDelayMs;
-
+    private int mediaCodecDecoderInitMaxRetryCount;
     /**
      * Creates a new builder.
      *
@@ -255,6 +255,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
       this.assumedMinimumCodecOperatingRate = 30;
       this.lateThresholdToDropDecoderInputUs = C.TIME_UNSET;
       this.mediaCodecDecoderInitRetryDelayMs = DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS;
+      this.mediaCodecDecoderInitMaxRetryCount = DEFAULT_DECODER_INIT_MAX_RETRY_COUNT;
     }
 
     /** Sets the {@link MediaCodecSelector decoder selector}. */
@@ -328,9 +329,27 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer
       return this;
     }
 
+    /**
+     * Sets the delay in ms for media codec video decoder initialisation retry.
+     *
+     * @param mediaCodecDecoderInitRetryDelayMs Delay in ms.
+     * @return This factory, for convenience.
+     */
     @CanIgnoreReturnValue
     public Builder setMediaCodecDecoderInitRetryDelayMs(int mediaCodecDecoderInitRetryDelayMs) {
       this.mediaCodecDecoderInitRetryDelayMs = mediaCodecDecoderInitRetryDelayMs;
+      return this;
+    }
+
+    /**
+     * Sets the max retry count for media codec video decoder initialisation retry.
+     *
+     * @param mediaCodecDecoderInitMaxRetryCount Maximum count number.
+     * @return This factory, for convenience.
+     */
+    @CanIgnoreReturnValue
+    public Builder setMediaCodecDecoderInitMaxRetryCount(int mediaCodecDecoderInitMaxRetryCount) {
+      this.mediaCodecDecoderInitMaxRetryCount = mediaCodecDecoderInitMaxRetryCount;
       return this;
     }
 

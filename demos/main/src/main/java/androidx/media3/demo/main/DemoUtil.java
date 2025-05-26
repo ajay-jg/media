@@ -34,6 +34,7 @@ import androidx.media3.datasource.cronet.CronetDataSource;
 import androidx.media3.datasource.cronet.CronetUtil;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.RenderersFactory;
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer;
 import androidx.media3.exoplayer.offline.DownloadManager;
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper;
 import java.io.File;
@@ -92,7 +93,8 @@ public final class DemoUtil {
         .setHsDav1dThreadCount(0)
         .setHsDav1dFrameDelay(0)
         .setHsDav1dIsCopyInputBuffer(false)
-        .setMediaCodecDecoderInitRetryDelayMs(MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
+        .setMediaCodecDecoderInitRetryDelayMs(MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS)
+        .setMediaCodecDecoderInitMaxRetryCount(MediaCodecRenderer.DEFAULT_DECODER_INIT_MAX_RETRY_COUNT);
   }
 
   @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)

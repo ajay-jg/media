@@ -264,8 +264,9 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
         eventHandler,
         eventListener,
         audioSink,
-        //Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
-        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
+        Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS,
+        DEFAULT_DECODER_INIT_MAX_RETRY_COUNT);
   }
 
   /**
@@ -292,7 +293,8 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
       @Nullable Handler eventHandler,
       @Nullable AudioRendererEventListener eventListener,
       AudioSink audioSink,
-      int decoderInitRetryDelayMs) {
+      int decoderInitRetryDelayMs,
+      int decoderInitMaxRetryCount) {
     this(
         context,
         codecAdapterFactory,
@@ -302,7 +304,8 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
         eventListener,
         audioSink,
         Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
-        decoderInitRetryDelayMs);
+        decoderInitRetryDelayMs,
+        decoderInitMaxRetryCount);
   }
 
   /**
@@ -340,7 +343,8 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
         eventListener,
         audioSink,
         Util.SDK_INT >= 35 ? new LoudnessCodecController() : null,
-        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS,
+        DEFAULT_DECODER_INIT_MAX_RETRY_COUNT
     );
   }
 
@@ -370,14 +374,16 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
       @Nullable AudioRendererEventListener eventListener,
       AudioSink audioSink,
       @Nullable LoudnessCodecController loudnessCodecController,
-      int decoderInitRetryDelayMs) {
+      int decoderInitRetryDelayMs,
+      int decoderInitMaxRetryCount) {
     super(
         C.TRACK_TYPE_AUDIO,
         codecAdapterFactory,
         mediaCodecSelector,
         enableDecoderFallback,
         /* assumedMinimumCodecOperatingRate= */ 44100,
-        decoderInitRetryDelayMs);
+        decoderInitRetryDelayMs,
+        decoderInitMaxRetryCount);
     context = context.getApplicationContext();
     this.context = context;
     this.audioSink = audioSink;

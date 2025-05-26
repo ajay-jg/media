@@ -30,6 +30,7 @@ import static androidx.media3.exoplayer.source.SampleStream.FLAG_OMIT_SAMPLE_DAT
 import static androidx.media3.exoplayer.source.SampleStream.FLAG_PEEK;
 import static androidx.media3.exoplayer.source.SampleStream.FLAG_REQUIRE_FORMAT;
 import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.annotation.TargetApi;
@@ -400,7 +401,11 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
   private boolean needToNotifyOutputFormatChangeAfterStreamChange;
   private boolean experimentalEnableProcessedStreamChangedAtStart;
   private int decoderInitRetryDelayMs;
+  private final int decoderInitMaxRetryCount;
   public static final int DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS = 50;
+  private static final int DECODER_INIT_RETRY_MAX_DELAY_MS = 3*1000;
+
+  public static final int DEFAULT_DECODER_INIT_MAX_RETRY_COUNT = 0;
 
   /**
    * @param trackType The {@link C.TrackType track type} that the renderer handles.
@@ -425,7 +430,8 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
         mediaCodecSelector,
         enableDecoderFallback,
         assumedMinimumCodecOperatingRate,
-        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS
+        DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS,
+        DEFAULT_DECODER_INIT_MAX_RETRY_COUNT
     );
   }
 
@@ -447,7 +453,8 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
       MediaCodecSelector mediaCodecSelector,
       boolean enableDecoderFallback,
       float assumedMinimumCodecOperatingRate,
-      int decoderInitRetryDelayMs) {
+      int decoderInitRetryDelayMs,
+      int decoderInitMaxRetryCount) {
     super(trackType);
     this.codecAdapterFactory = codecAdapterFactory;
     this.mediaCodecSelector = checkNotNull(mediaCodecSelector);
@@ -486,6 +493,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
     codecDrainAction = DRAIN_ACTION_NONE;
     decoderCounters = new DecoderCounters();
     this.decoderInitRetryDelayMs = max(decoderInitRetryDelayMs, DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
+    this.decoderInitMaxRetryCount = decoderInitMaxRetryCount;
   }
 
   /**
@@ -1193,8 +1201,9 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
             // Workaround for [internal b/191966399].
             // See also https://github.com/google/ExoPlayer/issues/8696.
             Log.w(TAG, "Preferred decoder instantiation failed. Sleeping for 50ms then retrying.");
-            Thread.sleep(/* millis= */ decoderInitRetryDelayMs);
-            initCodec(codecInfo, crypto);
+            Thread.sleep(/* millis= */ 50);
+            // Hotstar change - Do decoder initialisation in a loop with delay.
+            initCodecWithRetryLoop(codecInfo, crypto);
           } else {
             throw e;
           }
@@ -1222,6 +1231,27 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
     }
 
     this.availableCodecInfos = null;
+  }
+
+
+  private void initCodecWithRetryLoop(MediaCodecInfo codecInfo, MediaCrypto crypto) throws Exception {
+    int retryCount = 0;
+    do {
+      try {
+        initCodec(codecInfo, crypto);
+        return;
+      } catch (Exception e) {
+        retryCount++;
+        if (retryCount > decoderInitMaxRetryCount) {
+          throw e;
+        }
+
+        int sleepTimeMs = min(retryCount * decoderInitRetryDelayMs, DECODER_INIT_RETRY_MAX_DELAY_MS);
+        Log.w(TAG, "Decoder instantiation failed. Sleeping for "
+            + sleepTimeMs +"ms then retrying. retryCount "+retryCount);
+        Thread.sleep(/* millis= */ sleepTimeMs);
+      }
+    } while (true);
   }
 
   private List<MediaCodecInfo> getAvailableCodecInfos(boolean mediaCryptoRequiresSecureDecoder)

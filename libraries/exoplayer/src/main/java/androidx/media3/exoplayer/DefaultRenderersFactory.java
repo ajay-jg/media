@@ -116,6 +116,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
   private int hsdav1dFrameDelay;
   private boolean hsDav1dIsCopyInputBuffer;
   private int mediaCodecDecoderInitRetryDelayMs;
+  private int mediaCodecDecoderInitMaxRetryCount;
 
   /**
    * @param context A {@link Context}.
@@ -131,6 +132,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
     this.hsdav1dFrameDelay = 0;
     this.hsDav1dIsCopyInputBuffer = false;
     this.mediaCodecDecoderInitRetryDelayMs = MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS;
+    this.mediaCodecDecoderInitMaxRetryCount = MediaCodecRenderer.DEFAULT_DECODER_INIT_MAX_RETRY_COUNT;
   }
 
   /**
@@ -200,6 +202,17 @@ public class DefaultRenderersFactory implements RenderersFactory {
     // Min value check is present in MediaCodecRenderer as well.
     this.mediaCodecDecoderInitRetryDelayMs =
         Math.max(delayMs, MediaCodecRenderer.DEFAULT_DECODER_INIT_RETRY_MIN_DELAY_MS);
+    return this;
+  }
+
+  /**
+   * Sets the max retry count for media codec video decoder initialisation retry.
+   *
+   * @param maxCount Maximum count number.
+   * @return This factory, for convenience.
+   */
+  public DefaultRenderersFactory setMediaCodecDecoderInitMaxRetryCount(int maxCount) {
+    this.mediaCodecDecoderInitMaxRetryCount = maxCount;
     return this;
   }
 
@@ -480,6 +493,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
             .experimentalSetParseAv1SampleDependencies(parseAv1SampleDependencies)
             .experimentalSetLateThresholdToDropDecoderInputUs(lateThresholdToDropDecoderInputUs)
             .setMediaCodecDecoderInitRetryDelayMs(mediaCodecDecoderInitRetryDelayMs)
+            .setMediaCodecDecoderInitMaxRetryCount(mediaCodecDecoderInitMaxRetryCount)
             .build();
     out.add(videoRenderer);
 
@@ -640,7 +654,8 @@ public class DefaultRenderersFactory implements RenderersFactory {
             eventHandler,
             eventListener,
             audioSink,
-            mediaCodecDecoderInitRetryDelayMs);
+            mediaCodecDecoderInitRetryDelayMs,
+            mediaCodecDecoderInitMaxRetryCount);
     out.add(audioRenderer);
 
     if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) {
