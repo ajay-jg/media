@@ -275,14 +275,6 @@ public interface AnalyticsCollector
   void onRenderedFirstFrame(Object output, long renderTimeMs);
 
   /**
-   * Called when a video frame timestamp is too much different from expected timestamp.
-   *
-   * @param earlyUs It indicates how early the frame is. Positive value indicates early frame and
-   *                negative value indicates late frame.
-   */
-  default void notifyVideoSinkTimestampJump(long earlyUs) {}
-
-  /**
    * Called to report the video processing offset of video frames processed by the video renderer.
    *
    * <p>Video processing offset represents how early a video frame is processed compared to the

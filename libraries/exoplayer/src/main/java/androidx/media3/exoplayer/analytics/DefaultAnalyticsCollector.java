@@ -368,15 +368,6 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
   }
 
   @Override
-  public final void notifyVideoSinkTimestampJump(long earlyUs) {
-    EventTime eventTime = generateReadingMediaPeriodEventTime();
-    sendEvent(
-        eventTime,
-        AnalyticsListener.EVENT_HS_VIDEO_SINK_TIMESTAMP_JUMP,
-        listener -> listener.onVideoSinkTimestampJumpDetected(eventTime, earlyUs));
-  }
-
-  @Override
   public final void onVideoFrameProcessingOffset(long totalProcessingOffsetUs, int frameCount) {
     EventTime eventTime = generatePlayingMediaPeriodEventTime();
     sendEvent(
