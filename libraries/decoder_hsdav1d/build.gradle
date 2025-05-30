@@ -18,6 +18,12 @@ android {
             }
         }
     }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
 }
 
 // Configure the native build.
@@ -122,5 +128,4 @@ ext {
     releaseDescription = 'Dav1d AV1 extension for ExoPlayer for Hotstar.'
 }
 
-//apply from: '../../javadoc_library.gradle'
-//apply from: '../../publish.gradle' //TODO: Discuss once with mayur
+apply from: '../../publish.gradle'
