@@ -602,7 +602,11 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
   private static SegmentBaseHolder getNextSegmentHolder(
       HlsMediaPlaylist mediaPlaylist, long nextMediaSequence, int nextPartIndex) {
     int segmentIndexInPlaylist = (int) (nextMediaSequence - mediaPlaylist.mediaSequence);
-    if (segmentIndexInPlaylist == mediaPlaylist.segments.size()) {
+    boolean segmentInList =
+        (DefaultHlsDataSourceFactory.DISABLE_INDEX_OOB_EXCEPTION) ? (segmentIndexInPlaylist
+            >= mediaPlaylist.segments.size())
+            : (segmentIndexInPlaylist == mediaPlaylist.segments.size());
+    if (segmentInList) {
       int index = nextPartIndex != C.INDEX_UNSET ? nextPartIndex : 0;
       return index < mediaPlaylist.trailingParts.size()
           ? new SegmentBaseHolder(mediaPlaylist.trailingParts.get(index), nextMediaSequence, index)

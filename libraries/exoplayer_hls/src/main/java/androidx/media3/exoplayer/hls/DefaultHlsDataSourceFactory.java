@@ -25,6 +25,7 @@ public final class DefaultHlsDataSourceFactory implements HlsDataSourceFactory {
 
   private final DataSource.Factory dataSourceFactory;
 
+  public static boolean DISABLE_INDEX_OOB_EXCEPTION = false;
   public static boolean ENABLE_SEPARATE_TIMESTAMP_ADJUSTER_FOR_AUDIO = false;
 
   /**
