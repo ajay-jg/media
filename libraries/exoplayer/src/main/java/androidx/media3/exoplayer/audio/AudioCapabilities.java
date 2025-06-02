@@ -30,6 +30,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.provider.Settings.Global;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -92,6 +93,12 @@ public final class AudioCapabilities {
 
   /** Global settings key for devices that can specify external surround sound. */
   private static final String EXTERNAL_SURROUND_SOUND_KEY = "external_surround_sound_enabled";
+
+  /**
+   * Global settings key for devices that can specify if passthrough is enabled by the user in Sound
+   * Settings of the device. This is helpful in cases where optical(S/PDIF) cable is connected
+   */
+  private static final String NRDP_EXTERNAL_SURROUND_SOUND_KEY = "nrdp_external_surround_sound_enabled";
 
   /**
    * Global setting key for devices that want to force the usage of {@link
@@ -165,6 +172,13 @@ public final class AudioCapabilities {
     }
 
     ImmutableSet.Builder<Integer> supportedEncodings = new ImmutableSet.Builder<>();
+
+    if (isNrdpSurroundSoundEnabledOnDevice(context)) {
+      supportedEncodings.addAll(EXTERNAL_SURROUND_SOUND_ENCODINGS);
+      return new AudioCapabilities(
+          getAudioProfiles(Ints.toArray(supportedEncodings.build()), DEFAULT_MAX_CHANNEL_COUNT));
+    }
+
     supportedEncodings.add(C.ENCODING_PCM_16BIT);
 
     // AudioTrack.isDirectPlaybackSupported returns true for encodings that are supported for audio
@@ -204,6 +218,20 @@ public final class AudioCapabilities {
         getAudioProfiles(
             Ints.toArray(supportedEncodings.build()),
             /* maxChannelCount= */ DEFAULT_MAX_CHANNEL_COUNT));
+  }
+
+  /**
+   * Returns if surround sound is enabled using NRDP key.
+   * @param context A context for obtaining the required configuration.
+   * @return A flag indicating the surround support.
+   */
+  public static boolean isNrdpSurroundSoundEnabledOnDevice(Context context) {
+    return Util.SDK_INT >= 17
+        && Settings.Global.getInt(
+        context.getContentResolver(),
+        NRDP_EXTERNAL_SURROUND_SOUND_KEY,
+        0
+    ) == 1;
   }
 
   /**
