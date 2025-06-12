@@ -30,7 +30,7 @@ afterEvaluate {
             publications {
                 release(MavenPublication) {
                     from components.release
-                    groupId = 'hotstar.androidx.media3'
+                    groupId = 'com.hotstar.androidx.media3'
                     artifactId = findProperty('releaseArtifactId') ?: ''
                     version = findProperty('releaseVersion') ?: ''
                     pom {
