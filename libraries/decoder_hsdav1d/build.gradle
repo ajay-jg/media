@@ -11,7 +11,7 @@ android {
             cmake {
                 arguments "-DCMAKE_BUILD_TYPE=Release"
                 arguments "-DBUILD_TESTING=OFF"
-                targets "hsdav1dJNI"
+                targets "hsdav1dMedia3JNI"
 
                 // Define CMake variables
                 arguments "-DDAV1D_LIB_DEPENDENCY_DIR=${buildDir}/unzipped"
