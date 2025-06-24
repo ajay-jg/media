@@ -17,7 +17,7 @@
 cmake_minimum_required(VERSION 3.7.1 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 11)
 
-project(libhsdav1dJNI C CXX)
+project(libhsdav1dMedia3JNI C CXX)
 
 # Devices using armeabi-v7a are not required to support
 # Neon which is why Neon is disabled by default for
@@ -33,7 +33,7 @@ if(build_type MATCHES "^rel")
     add_compile_options("-O2")
 endif()
 
-set(libhsdav1d_jni_root "${CMAKE_CURRENT_SOURCE_DIR}")
+set(libhsdav1d_media3_jni_root "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Set the Android ABIs
 set(ANDROID_ABIS "armeabi-v7a" "arm64-v8a" "x86" "x86_64")
@@ -52,8 +52,8 @@ endif()
 find_library(GLESv2-lib GLESv2)
 find_library(EGL-lib EGL)
 
-# Build libhsdav1dJNI.
-add_library(hsdav1dJNI
+# Build libhsdav1dMedia3JNI.
+add_library(hsdav1dMedia3JNI
         SHARED
         hsdav1d_jni_swig_generated.cpp
         hsdav1d_opengl_render_utils.cpp
@@ -70,7 +70,7 @@ foreach(ABI ${ANDROID_ABIS})
     set_target_properties(Dav1dLib_${ABI} PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO NOCONFIG)
 
     if(ANDROID_ABI STREQUAL ${ABI})
-        target_link_libraries(hsdav1dJNI
+        target_link_libraries(hsdav1dMedia3JNI
                 PRIVATE ${GLESv2-lib}
                 PRIVATE ${EGL-lib}
                 PRIVATE Dav1dLib_${ABI}
