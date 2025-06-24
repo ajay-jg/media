@@ -153,6 +153,8 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
   @Nullable private Timeline contentTimeline;
   @Nullable private AdPlaybackState adPlaybackState;
   private @NullableType AdMediaSourceHolder[][] adMediaSourceHolders;
+  private Boolean enableMultiPeriodMediaSource = false;
+  private @NullableType final MultiPeriodAdTimelineFactory multiPeriodAdTimelineFactory;
 
   /**
    * Constructs a new source that inserts ads linearly with the content specified by {@code
@@ -160,7 +162,7 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
    *
    * <p>This is equivalent to passing true as param {@code useLazyContentSourcePreparation} when
    * calling {@link AdsMediaSource#AdsMediaSource(MediaSource, DataSpec, Object,
-   * MediaSource.Factory, AdsLoader, AdViewProvider, boolean)}.
+   * MediaSource.Factory, AdsLoader, AdViewProvider)}.
    *
    * @param contentMediaSource The {@link MediaSource} providing the content to play.
    * @param adTagDataSpec The data specification of the ad tag to load.
@@ -186,7 +188,9 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
         adMediaSourceFactory,
         adsLoader,
         adViewProvider,
-        /* useLazyContentSourcePreparation= */ true);
+        /* useLazyContentSourcePreparation= */ true,
+        false,
+        null);
   }
 
   /**
@@ -215,7 +219,10 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
       Factory adMediaSourceFactory,
       AdsLoader adsLoader,
       AdViewProvider adViewProvider,
-      boolean useLazyContentSourcePreparation) {
+      boolean useLazyContentSourcePreparation,
+      boolean enableMultiPeriodMediaSource,
+      @Nullable MultiPeriodAdTimelineFactory multiPeriodAdTimelineFactory
+      ) {
     this.contentMediaSource =
         new MaskingMediaSource(
             contentMediaSource, /* useLazyPreparation= */ useLazyContentSourcePreparation);
@@ -228,6 +235,8 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
     this.adsId = adsId;
     mainHandler = new Handler(Looper.getMainLooper());
     period = new Timeline.Period();
+    this.enableMultiPeriodMediaSource = enableMultiPeriodMediaSource;
+    this.multiPeriodAdTimelineFactory = multiPeriodAdTimelineFactory;
     adMediaSourceHolders = new AdMediaSourceHolder[0][];
     adsLoader.setSupportedContentTypes(adMediaSourceFactory.getSupportedTypes());
   }
@@ -452,7 +461,11 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
         refreshSourceInfo(contentTimeline);
       } else {
         adPlaybackState = adPlaybackState.withAdDurationsUs(getAdDurationsUs());
-        refreshSourceInfo(new SinglePeriodAdTimeline(contentTimeline, adPlaybackState));
+        if (contentTimeline.getPeriodCount() == 1 || !enableMultiPeriodMediaSource) {
+          refreshSourceInfo(new SinglePeriodAdTimeline(contentTimeline, adPlaybackState));
+        } else {
+          refreshSourceInfo(multiPeriodAdTimelineFactory.create(contentTimeline, adPlaybackState));
+        }
       }
     }
   }
