@@ -193,6 +193,26 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
         null);
   }
 
+  public AdsMediaSource(
+      MediaSource contentMediaSource,
+      DataSpec adTagDataSpec,
+      Object adsId,
+      Factory adMediaSourceFactory,
+      AdsLoader adsLoader,
+      AdViewProvider adViewProvider,
+      boolean useLazyContentSourcePreparation) {
+    this(
+        contentMediaSource,
+        adTagDataSpec,
+        adsId,
+        adMediaSourceFactory,
+        adsLoader,
+        adViewProvider,
+        useLazyContentSourcePreparation,
+        false,
+        null);
+  }
+
   /**
    * Constructs a new source that inserts ads linearly with the content specified by {@code
    * contentMediaSource}.
