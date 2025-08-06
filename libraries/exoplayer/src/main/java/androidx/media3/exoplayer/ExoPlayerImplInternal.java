@@ -223,6 +223,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
   private PlaybackInfoUpdate playbackInfoUpdate;
   private boolean released;
   private boolean pauseAtEndOfWindow;
+  private boolean enableMultiPeriodMediaSource;
   private boolean pendingPauseAtEndOfPeriod;
   private boolean isRebuffering;
   private long lastRebufferRealtimeMs;
@@ -262,6 +263,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
       LivePlaybackSpeedControl livePlaybackSpeedControl,
       long releaseTimeoutMs,
       boolean pauseAtEndOfWindow,
+      boolean enableMultiPeriodMediaSource,
       boolean dynamicSchedulingEnabled,
       Looper applicationLooper,
       Clock clock,
@@ -281,6 +283,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
     this.releaseTimeoutMs = releaseTimeoutMs;
     this.setForegroundModeTimeoutMs = releaseTimeoutMs;
     this.pauseAtEndOfWindow = pauseAtEndOfWindow;
+    this.enableMultiPeriodMediaSource = enableMultiPeriodMediaSource;
     this.dynamicSchedulingEnabled = dynamicSchedulingEnabled;
     this.clock = clock;
     this.playerId = playerId;
@@ -2282,6 +2285,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
             queue,
             repeatMode,
             shuffleModeEnabled,
+            enableMultiPeriodMediaSource,
             window,
             period);
     MediaPeriodId newPeriodId = positionUpdate.periodId;
@@ -3313,6 +3317,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
       MediaPeriodQueue queue,
       @RepeatMode int repeatMode,
       boolean shuffleModeEnabled,
+      boolean enableMultiPeriodMediaSource,
       Timeline.Window window,
       Timeline.Period period) {
     if (timeline.isEmpty()) {
@@ -3438,11 +3443,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
     // the only change is that MediaPeriodId.nextAdGroupIndex increased. This postpones a potential
     // discontinuity until we reach the former next ad group position.
     boolean sameOldAndNewPeriodUid = oldPeriodId.periodUid.equals(newPeriodUid);
-    boolean onlyNextAdGroupIndexIncreased =
-        sameOldAndNewPeriodUid
-            && !oldPeriodId.isAd()
-            && !periodIdWithAds.isAd()
-            && earliestCuePointIsUnchangedOrLater;
+    boolean onlyNextAdGroupIndexIncreased;
+    if (enableMultiPeriodMediaSource) {
+      // After loading MPD manifest: Masking placeholder -> multi period content
+      boolean samePeriodCount = playbackInfo.timeline.getPeriodCount() == timeline.getPeriodCount();
+      onlyNextAdGroupIndexIncreased =
+          sameOldAndNewPeriodUid
+              && samePeriodCount
+              && !oldPeriodId.isAd()
+              && !periodIdWithAds.isAd()
+              && earliestCuePointIsUnchangedOrLater;
+    } else {
+      onlyNextAdGroupIndexIncreased =
+          sameOldAndNewPeriodUid
+              && !oldPeriodId.isAd()
+              && !periodIdWithAds.isAd()
+              && earliestCuePointIsUnchangedOrLater;
+    }
     // Drop update if the change is from/to server-side inserted ads at the same content position to
     // avoid any unintentional renderer reset.
     boolean isInStreamAdChange =

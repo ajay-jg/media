@@ -186,6 +186,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
   private ShuffleOrder shuffleOrder;
   private PreloadConfiguration preloadConfiguration;
   private boolean pauseAtEndOfMediaItems;
+  private boolean enableMultiPeriodMediaSource;
   private Commands availableCommands;
   private MediaMetadata mediaMetadata;
   private MediaMetadata playlistMetadata;
@@ -285,6 +286,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
       this.seekForwardIncrementMs = builder.seekForwardIncrementMs;
       this.maxSeekToPreviousPositionMs = builder.maxSeekToPreviousPositionMs;
       this.pauseAtEndOfMediaItems = builder.pauseAtEndOfMediaItems;
+      this.enableMultiPeriodMediaSource = builder.enableMultiPeriodMediaSource;
       this.applicationLooper = builder.looper;
       this.clock = builder.clock;
       this.wrappingPlayer = wrappingPlayer == null ? this : wrappingPlayer;
@@ -364,6 +366,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
               builder.livePlaybackSpeedControl,
               builder.releaseTimeoutMs,
               pauseAtEndOfMediaItems,
+              enableMultiPeriodMediaSource,
               builder.dynamicSchedulingEnabled,
               applicationLooper,
               clock,
