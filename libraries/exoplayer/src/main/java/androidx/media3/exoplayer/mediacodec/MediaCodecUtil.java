@@ -206,9 +206,9 @@ public final class MediaCodecUtil {
       boolean requiresTunnelingDecoder)
       throws DecoderQueryException {
     @Nullable String mimeType = format.sampleMimeType;
-    List<MediaCodecInfo> decoderInfos =
-        mediaCodecSelector.getDecoderInfos(
-            format.sampleMimeType, requiresSecureDecoder, requiresTunnelingDecoder);
+    List<MediaCodecInfo> decoderInfos = new ArrayList<>( mediaCodecSelector.getDecoderInfos(
+        format.sampleMimeType, requiresSecureDecoder, requiresTunnelingDecoder));
+
     // Hotstar - Remove software AV1 decoders from the list - Start
     List<MediaCodecInfo> swAv1DecoderInfos = new ArrayList<>();
     if (MimeTypes.VIDEO_AV1.equals(mimeType)) {
@@ -263,8 +263,8 @@ public final class MediaCodecUtil {
     if (alternativeMimeType == null) {
       return ImmutableList.of();
     }
-    List<MediaCodecInfo> alternateDecoderInfos =  mediaCodecSelector.getDecoderInfos(
-        alternativeMimeType, requiresSecureDecoder, requiresTunnelingDecoder);
+    List<MediaCodecInfo> alternateDecoderInfos =  new ArrayList<>(mediaCodecSelector.getDecoderInfos(
+        alternativeMimeType, requiresSecureDecoder, requiresTunnelingDecoder));
 
     // Hotstar - Remove software AV1 decoders from the list - Start
     List<MediaCodecInfo> swAv1DecoderInfos = new ArrayList<>();
