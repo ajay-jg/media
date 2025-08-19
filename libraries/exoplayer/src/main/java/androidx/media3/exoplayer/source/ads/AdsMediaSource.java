@@ -404,7 +404,7 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
     maybeUpdateSourceInfo();
   }
 
-  private static int checkValidAdPlaybackStateUpdate(
+  public static int checkValidAdPlaybackStateUpdate(
       AdPlaybackState oldAdPlaybackState, AdPlaybackState newAdPlaybackState) {
     checkState(
         oldAdPlaybackState.endsWithLivePostrollPlaceHolder()
