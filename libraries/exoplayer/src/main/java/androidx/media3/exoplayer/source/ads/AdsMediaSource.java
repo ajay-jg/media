@@ -153,6 +153,8 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
   @Nullable private Timeline contentTimeline;
   @Nullable private AdPlaybackState adPlaybackState;
   private @NullableType AdMediaSourceHolder[][] adMediaSourceHolders;
+  private Boolean enableMultiPeriodMediaSource = false;
+  private @NullableType final MultiPeriodAdTimelineFactory multiPeriodAdTimelineFactory;
 
   /**
    * Constructs a new source that inserts ads linearly with the content specified by {@code
@@ -160,7 +162,7 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
    *
    * <p>This is equivalent to passing true as param {@code useLazyContentSourcePreparation} when
    * calling {@link AdsMediaSource#AdsMediaSource(MediaSource, DataSpec, Object,
-   * MediaSource.Factory, AdsLoader, AdViewProvider, boolean)}.
+   * MediaSource.Factory, AdsLoader, AdViewProvider)}.
    *
    * @param contentMediaSource The {@link MediaSource} providing the content to play.
    * @param adTagDataSpec The data specification of the ad tag to load.
@@ -186,7 +188,29 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
         adMediaSourceFactory,
         adsLoader,
         adViewProvider,
-        /* useLazyContentSourcePreparation= */ true);
+        /* useLazyContentSourcePreparation= */ true,
+        false,
+        null);
+  }
+
+  public AdsMediaSource(
+      MediaSource contentMediaSource,
+      DataSpec adTagDataSpec,
+      Object adsId,
+      Factory adMediaSourceFactory,
+      AdsLoader adsLoader,
+      AdViewProvider adViewProvider,
+      boolean useLazyContentSourcePreparation) {
+    this(
+        contentMediaSource,
+        adTagDataSpec,
+        adsId,
+        adMediaSourceFactory,
+        adsLoader,
+        adViewProvider,
+        useLazyContentSourcePreparation,
+        false,
+        null);
   }
 
   /**
@@ -215,7 +239,10 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
       Factory adMediaSourceFactory,
       AdsLoader adsLoader,
       AdViewProvider adViewProvider,
-      boolean useLazyContentSourcePreparation) {
+      boolean useLazyContentSourcePreparation,
+      boolean enableMultiPeriodMediaSource,
+      @Nullable MultiPeriodAdTimelineFactory multiPeriodAdTimelineFactory
+      ) {
     this.contentMediaSource =
         new MaskingMediaSource(
             contentMediaSource, /* useLazyPreparation= */ useLazyContentSourcePreparation);
@@ -228,6 +255,8 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
     this.adsId = adsId;
     mainHandler = new Handler(Looper.getMainLooper());
     period = new Timeline.Period();
+    this.enableMultiPeriodMediaSource = enableMultiPeriodMediaSource;
+    this.multiPeriodAdTimelineFactory = multiPeriodAdTimelineFactory;
     adMediaSourceHolders = new AdMediaSourceHolder[0][];
     adsLoader.setSupportedContentTypes(adMediaSourceFactory.getSupportedTypes());
   }
@@ -336,7 +365,9 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
       checkNotNull(adMediaSourceHolders[adGroupIndex][adIndexInAdGroup])
           .handleSourceInfoRefresh(newTimeline);
     } else {
-      Assertions.checkArgument(newTimeline.getPeriodCount() == 1);
+      if (!enableMultiPeriodMediaSource) {
+        Assertions.checkArgument(newTimeline.getPeriodCount() == 1);
+      }
       contentTimeline = newTimeline;
       mainHandler.post(() -> adsLoader.handleContentTimelineChanged(this, newTimeline));
     }
@@ -447,12 +478,20 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
 
   private void maybeUpdateSourceInfo() {
     @Nullable Timeline contentTimeline = this.contentTimeline;
+
     if (adPlaybackState != null && contentTimeline != null) {
       if (adPlaybackState.adGroupCount == 0) {
         refreshSourceInfo(contentTimeline);
       } else {
         adPlaybackState = adPlaybackState.withAdDurationsUs(getAdDurationsUs());
-        refreshSourceInfo(new SinglePeriodAdTimeline(contentTimeline, adPlaybackState));
+        if (!enableMultiPeriodMediaSource) {
+          refreshSourceInfo(new SinglePeriodAdTimeline(contentTimeline, adPlaybackState));
+        } else {
+          refreshSourceInfo(multiPeriodAdTimelineFactory.create(contentTimeline,
+              (contentMediaSource.hasRealTimeline()) ?
+                  adPlaybackState :
+                  adPlaybackState.withOnlyPrerollAdGroup()));
+        }
       }
     }
   }

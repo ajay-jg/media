@@ -245,6 +245,7 @@ public interface ExoPlayer extends Player {
     /* package */ long releaseTimeoutMs;
     /* package */ long detachSurfaceTimeoutMs;
     /* package */ boolean pauseAtEndOfMediaItems;
+    /* package */ boolean enableMultiPeriodMediaSource;
     /* package */ boolean usePlatformDiagnostics;
     @Nullable /* package */ PlaybackLooperProvider playbackLooperProvider;
     /* package */ boolean buildCalled;
@@ -952,6 +953,12 @@ public interface ExoPlayer extends Player {
     public Builder setPauseAtEndOfMediaItems(boolean pauseAtEndOfMediaItems) {
       checkState(!buildCalled);
       this.pauseAtEndOfMediaItems = pauseAtEndOfMediaItems;
+      return this;
+    }
+
+    public Builder setEnableMultiPeriodMediaSource(boolean enableMultiPeriodMediaSource) {
+      checkState(!buildCalled);
+      this.enableMultiPeriodMediaSource = enableMultiPeriodMediaSource;
       return this;
     }
 
