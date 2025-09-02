@@ -47,6 +47,7 @@ public class AdaptationSet {
 
   /** Supplemental properties in the adaptation set. */
   public final List<Descriptor> supplementalProperties;
+  public final SegmentBase.SegmentTemplate segmentTemplate;
 
   /**
    * @param id A non-negative identifier for the adaptation set that's unique in the scope of its
@@ -63,12 +64,15 @@ public class AdaptationSet {
       List<Representation> representations,
       List<Descriptor> accessibilityDescriptors,
       List<Descriptor> essentialProperties,
-      List<Descriptor> supplementalProperties) {
+      List<Descriptor> supplementalProperties,
+      SegmentBase.SegmentTemplate segmentTemplate
+  ) {
     this.id = id;
     this.type = type;
     this.representations = Collections.unmodifiableList(representations);
     this.accessibilityDescriptors = Collections.unmodifiableList(accessibilityDescriptors);
     this.essentialProperties = Collections.unmodifiableList(essentialProperties);
     this.supplementalProperties = Collections.unmodifiableList(supplementalProperties);
+    this.segmentTemplate = segmentTemplate;
   }
 }

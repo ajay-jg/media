@@ -64,6 +64,7 @@ public abstract class Representation {
   public final List<Descriptor> supplementalProperties;
 
   @Nullable private final RangedUri initializationUri;
+  public final SegmentBase segmentBase;
 
   /**
    * Constructs a new instance.
@@ -156,6 +157,7 @@ public abstract class Representation {
     this.supplementalProperties = supplementalProperties;
     initializationUri = segmentBase.getInitialization(this);
     presentationTimeOffsetUs = segmentBase.getPresentationTimeOffsetUs();
+    this.segmentBase = segmentBase;
   }
 
   /**
