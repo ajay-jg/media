@@ -370,6 +370,10 @@ public abstract class SegmentBase {
     @Nullable /* package */ final UrlTemplate initializationTemplate;
     @Nullable /* package */ final UrlTemplate mediaTemplate;
     /* package */ final long endNumber;
+    @Nullable public Long duration;
+    @Nullable public Long timescale;
+    public long startNumber;
+    @Nullable public List<SegmentTimelineElement> timeline;
 
     /**
      * @param initialization A {@link RangedUri} corresponding to initialization data, if such data
@@ -424,6 +428,10 @@ public abstract class SegmentBase {
       this.initializationTemplate = initializationTemplate;
       this.mediaTemplate = mediaTemplate;
       this.endNumber = endNumber;
+      this.duration = duration;
+      this.timescale = timescale;
+      this.startNumber = startNumber;
+      this.timeline = segmentTimeline;
     }
 
     @Override
@@ -474,8 +482,8 @@ public abstract class SegmentBase {
   /** Represents a timeline segment from the MPD's SegmentTimeline list. */
   public static final class SegmentTimelineElement {
 
-    /* package */ final long startTime;
-    /* package */ final long duration;
+    public final long startTime;
+    public final long duration;
 
     /**
      * @param startTime The start time of the element. The value in seconds is the division of this

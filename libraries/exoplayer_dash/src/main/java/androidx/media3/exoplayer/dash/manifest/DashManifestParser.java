@@ -434,6 +434,8 @@ public class DashManifestParser extends DefaultHandler
     List<RepresentationInfo> representationInfos = new ArrayList<>();
     ArrayList<BaseUrl> baseUrls = new ArrayList<>();
 
+    @Nullable SegmentTemplate segmentTemplate = null;
+
     boolean seenFirstBaseUrl = false;
     do {
       xpp.next();
@@ -512,7 +514,7 @@ public class DashManifestParser extends DefaultHandler
       } else if (XmlPullParserUtil.isStartTag(xpp, "SegmentTemplate")) {
         segmentBaseAvailabilityTimeOffsetUs =
             parseAvailabilityTimeOffsetUs(xpp, segmentBaseAvailabilityTimeOffsetUs);
-        segmentBase =
+        segmentTemplate =
             parseSegmentTemplate(
                 xpp,
                 (SegmentTemplate) segmentBase,
@@ -522,6 +524,7 @@ public class DashManifestParser extends DefaultHandler
                 baseUrlAvailabilityTimeOffsetUs,
                 segmentBaseAvailabilityTimeOffsetUs,
                 timeShiftBufferDepthMs);
+        segmentBase = segmentTemplate;
       } else if (XmlPullParserUtil.isStartTag(xpp, "InbandEventStream")) {
         inbandEventStreams.add(parseDescriptor(xpp, "InbandEventStream"));
       } else if (XmlPullParserUtil.isStartTag(xpp, "Label")) {
@@ -550,7 +553,8 @@ public class DashManifestParser extends DefaultHandler
         representations,
         accessibilityDescriptors,
         essentialProperties,
-        supplementalProperties);
+        supplementalProperties,
+        segmentTemplate);
   }
 
   protected AdaptationSet buildAdaptationSet(
@@ -559,14 +563,16 @@ public class DashManifestParser extends DefaultHandler
       List<Representation> representations,
       List<Descriptor> accessibilityDescriptors,
       List<Descriptor> essentialProperties,
-      List<Descriptor> supplementalProperties) {
+      List<Descriptor> supplementalProperties,
+      @Nullable SegmentTemplate segmentTemplate) {
     return new AdaptationSet(
         id,
         contentType,
         representations,
         accessibilityDescriptors,
         essentialProperties,
-        supplementalProperties);
+        supplementalProperties,
+        segmentTemplate);
   }
 
   protected @C.TrackType int parseContentType(XmlPullParser xpp) {
