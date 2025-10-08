@@ -905,7 +905,11 @@ public abstract class DownloadService extends Service {
 
     public void startPeriodicUpdates() {
       periodicUpdatesStarted = true;
-      update();
+      try {
+        update();
+      } catch (IllegalStateException e) {
+        logNonFatalError(e);
+      }
     }
 
     public void stopPeriodicUpdates() {
@@ -921,7 +925,11 @@ public abstract class DownloadService extends Service {
 
     public void invalidate() {
       if (notificationDisplayed) {
-        update();
+        try {
+          update();
+        } catch (IllegalStateException e) {
+          logNonFatalError(e);
+        }
       }
     }
 
@@ -933,17 +941,12 @@ public abstract class DownloadService extends Service {
       @RequirementFlags int notMetRequirements = downloadManager.getNotMetRequirements();
       Notification notification = getForegroundNotification(downloads, notMetRequirements);
       if (!notificationDisplayed) {
-        try {
-          Util.setForegroundServiceNotification(
-              /* service= */ DownloadService.this,
-              notificationId,
-              notification,
-              ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
-              "dataSync");
-          notificationDisplayed = true;
-        } catch (IllegalStateException e) {
-          logNonFatalError(e);
-        }
+        Util.setForegroundServiceNotification(
+            /* service= */ DownloadService.this,
+            notificationId,
+            notification,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            "dataSync");
       } else {
         // Update the notification via NotificationManager rather than by repeatedly calling
         // startForeground, since the latter can cause ActivityManager log spam.
