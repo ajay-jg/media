@@ -777,6 +777,18 @@ public abstract class DownloadService extends Service {
       List<Download> downloads, @RequirementFlags int notMetRequirements);
 
   /**
+   * Logs a non-fatal error encountered during the service's operation.
+   *
+   * <p>This method is intended to be implemented by subclasses to handle non-fatal exceptions
+   * that occur during the execution of the `DownloadService`. The implementation can define
+   * how these errors are logged or reported, such as sending them to a logging framework,
+   * analytics service, or simply printing them to the console.
+   *
+   * @param exception The exception representing the non-fatal error to be logged.
+   */
+  protected abstract void logNonFatalError(Exception exception);
+
+  /**
    * Invalidates the current foreground notification and causes {@link
    * #getForegroundNotification(List, int)} to be invoked again if the service isn't stopped.
    */
@@ -893,7 +905,11 @@ public abstract class DownloadService extends Service {
 
     public void startPeriodicUpdates() {
       periodicUpdatesStarted = true;
-      update();
+      try {
+        update();
+      } catch (IllegalStateException e) {
+        logNonFatalError(e);
+      }
     }
 
     public void stopPeriodicUpdates() {
@@ -909,7 +925,11 @@ public abstract class DownloadService extends Service {
 
     public void invalidate() {
       if (notificationDisplayed) {
-        update();
+        try {
+          update();
+        } catch (IllegalStateException e) {
+          logNonFatalError(e);
+        }
       }
     }
 
@@ -927,7 +947,6 @@ public abstract class DownloadService extends Service {
             notification,
             ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
             "dataSync");
-        notificationDisplayed = true;
       } else {
         // Update the notification via NotificationManager rather than by repeatedly calling
         // startForeground, since the latter can cause ActivityManager log spam.
