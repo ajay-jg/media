@@ -19,6 +19,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 android {
+    ndkVersion "28.2.13676358"
     namespace 'androidx.media3.ui.compose'
 
     buildTypes {

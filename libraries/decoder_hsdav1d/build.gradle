@@ -1,9 +1,10 @@
 apply from: "$gradle.ext.androidxMediaSettingsDir/common_library_config.gradle"
 
 // Dependent HsDav1d library version.
-def hsdav1dLibVersion = '1.4.3.hotstar.1.0.0'
+def hsdav1dLibVersion = '1.4.3.hotstar.1.0.1'
 
 android {
+    ndkVersion "28.2.13676358"
     namespace 'androidx.media3.decoder.hsdav1d'
 
     defaultConfig {

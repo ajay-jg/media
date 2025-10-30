@@ -25,6 +25,7 @@ rootProject.allprojects.forEach {
 }
 
 android {
+    ndkVersion "28.2.13676358"
     namespace 'androidx.media3.common'
 
     buildTypes {

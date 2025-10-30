@@ -15,6 +15,7 @@ apply from: "$gradle.ext.androidxMediaSettingsDir/constants.gradle"
 apply plugin: 'com.android.application'
 
 android {
+    ndkVersion "28.2.13676358"
     namespace 'androidx.media3.test.session'
 
     compileSdk project.ext.compileSdkVersion
