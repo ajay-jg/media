@@ -365,7 +365,9 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
       checkNotNull(adMediaSourceHolders[adGroupIndex][adIndexInAdGroup])
           .handleSourceInfoRefresh(newTimeline);
     } else {
-      Assertions.checkArgument(newTimeline.getPeriodCount() == 1);
+      if (!enableMultiPeriodMediaSource) {
+        Assertions.checkArgument(newTimeline.getPeriodCount() == 1);
+      }
       contentTimeline = newTimeline;
       mainHandler.post(() -> adsLoader.handleContentTimelineChanged(this, newTimeline));
     }
@@ -402,7 +404,7 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
     maybeUpdateSourceInfo();
   }
 
-  private static int checkValidAdPlaybackStateUpdate(
+  public static int checkValidAdPlaybackStateUpdate(
       AdPlaybackState oldAdPlaybackState, AdPlaybackState newAdPlaybackState) {
     checkState(
         oldAdPlaybackState.endsWithLivePostrollPlaceHolder()
@@ -476,15 +478,19 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
 
   private void maybeUpdateSourceInfo() {
     @Nullable Timeline contentTimeline = this.contentTimeline;
+
     if (adPlaybackState != null && contentTimeline != null) {
       if (adPlaybackState.adGroupCount == 0) {
         refreshSourceInfo(contentTimeline);
       } else {
         adPlaybackState = adPlaybackState.withAdDurationsUs(getAdDurationsUs());
-        if (contentTimeline.getPeriodCount() == 1 || !enableMultiPeriodMediaSource) {
+        if (!enableMultiPeriodMediaSource) {
           refreshSourceInfo(new SinglePeriodAdTimeline(contentTimeline, adPlaybackState));
         } else {
-          refreshSourceInfo(multiPeriodAdTimelineFactory.create(contentTimeline, adPlaybackState));
+          refreshSourceInfo(multiPeriodAdTimelineFactory.create(contentTimeline,
+              (contentMediaSource.hasRealTimeline()) ?
+                  adPlaybackState :
+                  adPlaybackState.withOnlyPrerollAdGroup()));
         }
       }
     }

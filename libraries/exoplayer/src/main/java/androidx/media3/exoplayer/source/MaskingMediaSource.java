@@ -77,6 +77,10 @@ public final class MaskingMediaSource extends WrappingMediaSource {
     return timeline;
   }
 
+  public boolean hasRealTimeline() {
+    return hasRealTimeline;
+  }
+
   @Override
   public boolean canUpdateMediaItem(MediaItem mediaItem) {
     return mediaSource.canUpdateMediaItem(mediaItem);

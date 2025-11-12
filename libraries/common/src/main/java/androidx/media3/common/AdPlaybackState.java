@@ -1159,6 +1159,17 @@ public final class AdPlaybackState {
   }
 
   /**
+   * Returns an instance with the only the ad group at index 0 copied.
+   */
+  @CheckResult
+  public AdPlaybackState withOnlyPrerollAdGroup() {
+    AdGroup[] adGroups = new AdGroup[1];
+    adGroups[0] = getAdGroup(0);
+    return new AdPlaybackState(
+        adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount);
+  }
+
+  /**
    * Returns an instance with the specified {@link AdGroup#contentResumeOffsetUs}, in microseconds,
    * for the specified ad group.
    */

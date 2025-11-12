@@ -1157,4 +1157,20 @@ public abstract class DownloadService extends Service {
       }
     }
   }
+
+  @Override
+  public void onTimeout(int startId) {
+    if (Util.SDK_INT >= 24) {
+      this.stopForeground(STOP_FOREGROUND_REMOVE);
+    }
+    this.stopSelf();
+  }
+
+  @Override
+  public void onTimeout(int startId, int fgsType) {
+    if (Util.SDK_INT >= 24) {
+      this.stopForeground(STOP_FOREGROUND_REMOVE);
+    }
+    this.stopSelf();
+  }
 }
