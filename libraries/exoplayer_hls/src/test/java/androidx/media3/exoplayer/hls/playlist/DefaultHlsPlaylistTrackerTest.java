@@ -18,8 +18,11 @@ package androidx.media3.exoplayer.hls.playlist;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.net.Uri;
+import androidx.annotation.Nullable;
 import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DataSpec;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.datasource.TransferListener;
 import androidx.media3.exoplayer.source.MediaSourceEventListener;
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy;
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy;
@@ -30,6 +33,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -618,6 +622,35 @@ public class DefaultHlsPlaylistTrackerTest {
   }
 
   @Test
+  public void start_playlistDataSpecHasNonNullMutableCustomData()
+      throws IOException, TimeoutException, InterruptedException {
+    AtomicInteger customDataAssertionCount = new AtomicInteger();
+    List<HttpUrl> httpUrls =
+        enqueueWebServerResponses(
+            new String[] {"/multivariant.m3u8", "/media0/playlist.m3u8", "/media0/playlist.m3u8"},
+            getMockResponse(SAMPLE_M3U8_LIVE_MULTIVARIANT),
+            getMockResponse(SAMPLE_M3U8_LIVE_MEDIA_CAN_NOT_SKIP),
+            getMockResponse(SAMPLE_M3U8_LIVE_MEDIA_CAN_NOT_SKIP_NEXT));
+
+    // Use a wrapping DataSource that asserts customData is a non-null, mutable Map on every open()
+    DataSource.Factory wrappingFactory =
+        () ->
+            new CustomDataAssertingDataSource(
+                new DefaultHttpDataSource.Factory().createDataSource(),
+                customDataAssertionCount);
+
+    List<HlsMediaPlaylist> mediaPlaylists =
+        runPlaylistTrackerAndCollectMediaPlaylists(
+            wrappingFactory,
+            Uri.parse(mockWebServer.url("/multivariant.m3u8").toString()),
+            /* awaitedMediaPlaylistCount= */ 2);
+
+    assertRequestUrlsCalled(httpUrls);
+    // Multivariant playlist load (1) + initial media playlist (1) + refresh (1) = 3 opens minimum
+    assertThat(customDataAssertionCount.get()).isAtLeast(3);
+  }
+
+  @Test
   public void start_httpBadRequest_forcesFullNonBlockingPlaylistRequest()
       throws IOException, TimeoutException, InterruptedException {
     List<HttpUrl> httpUrls =
@@ -702,5 +735,62 @@ public class DefaultHlsPlaylistTrackerTest {
 
   private static byte[] getBytes(String filename) throws IOException {
     return TestUtil.getByteArray(ApplicationProvider.getApplicationContext(), filename);
+  }
+
+  /**
+   * A wrapping {@link DataSource} that asserts {@link DataSpec#customData} is a non-null, mutable
+   * {@link Map} on every {@link #open} call. This verifies that playlist DataSpecs are constructed
+   * with customData initialized, which is required for downstream components (e.g.
+   * OkHttpDataSource) to store actualContentLength for accurate byte reporting.
+   */
+  private static class CustomDataAssertingDataSource implements DataSource {
+
+    private final DataSource delegate;
+    private final AtomicInteger assertionCount;
+
+    CustomDataAssertingDataSource(DataSource delegate, AtomicInteger assertionCount) {
+      this.delegate = delegate;
+      this.assertionCount = assertionCount;
+    }
+
+    @Override
+    public void addTransferListener(TransferListener transferListener) {
+      delegate.addTransferListener(transferListener);
+    }
+
+    @Override
+    public long open(DataSpec dataSpec) throws IOException {
+      assertThat(dataSpec.customData).isNotNull();
+      assertThat(dataSpec.customData).isInstanceOf(Map.class);
+      // Verify the map is mutable by writing to it (same as OkHttpDataSource does)
+      @SuppressWarnings("unchecked")
+      Map<String, Object> customDataMap = (Map<String, Object>) dataSpec.customData;
+      customDataMap.put("testKey", "testValue");
+      assertThat(customDataMap).containsKey("testKey");
+      customDataMap.remove("testKey");
+      assertionCount.incrementAndGet();
+      return delegate.open(dataSpec);
+    }
+
+    @Override
+    public int read(byte[] buffer, int offset, int length) throws IOException {
+      return delegate.read(buffer, offset, length);
+    }
+
+    @Nullable
+    @Override
+    public Uri getUri() {
+      return delegate.getUri();
+    }
+
+    @Override
+    public Map<String, List<String>> getResponseHeaders() {
+      return delegate.getResponseHeaders();
+    }
+
+    @Override
+    public void close() throws IOException {
+      delegate.close();
+    }
   }
 }
