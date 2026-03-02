@@ -190,6 +190,7 @@ public final class DefaultHlsPlaylistTracker
         new DataSpec.Builder()
             .setUri(initialPlaylistUri)
             .setFlags(DataSpec.FLAG_ALLOW_GZIP)
+            .setCustomData(new HashMap<String, Object>())
             .build();
     if (cmcdConfiguration != null) {
       CmcdData cmcdData =
@@ -831,6 +832,7 @@ public final class DefaultHlsPlaylistTracker
           new DataSpec.Builder()
               .setUri(playlistRequestUri)
               .setFlags(DataSpec.FLAG_ALLOW_GZIP)
+              .setCustomData(new HashMap<String, Object>())
               .build();
       if (cmcdConfiguration != null) {
         CmcdData.Factory cmcdDataFactory =
