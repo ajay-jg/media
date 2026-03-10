@@ -61,8 +61,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
@@ -1161,8 +1163,12 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
           addTimelineForMediaPeriodId(builder, currentPlayerMediaPeriod, preferredTimeline);
         }
       } else {
+        Set<MediaPeriodId> seen = new HashSet<>();
         for (int i = 0; i < mediaPeriodQueue.size(); i++) {
-          addTimelineForMediaPeriodId(builder, mediaPeriodQueue.get(i), preferredTimeline);
+          MediaPeriodId id = mediaPeriodQueue.get(i);
+          if (seen.add(id)) {
+            addTimelineForMediaPeriodId(builder, id, preferredTimeline);
+          }
         }
         if (!mediaPeriodQueue.contains(currentPlayerMediaPeriod)) {
           addTimelineForMediaPeriodId(builder, currentPlayerMediaPeriod, preferredTimeline);
