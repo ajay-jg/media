@@ -1,0 +1,14 @@
+#workflow Name
+name: lib_build
+
+on:
+  push:
+    branches:
+      - fix/LIVE-54247
+#jobs
+jobs:
+  lib_build:
+    uses: hotstar/hotstar-github-action-workflows/.github/workflows/hotstar-android-lib-build.yml@main
+    with:
+      JAVA_VERSION: 21
+      FASTLANE_TASK: "build_n_publish_aar"

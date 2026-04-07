@@ -19,11 +19,23 @@ afterEvaluate {
     if (gradle.ext.has('rootProjectIsAndroidXMedia3') && gradle.ext.rootProjectIsAndroidXMedia3) {
         publishing {
             repositories {
+
+                // Official repository
+                // Do not get confused by the 'snapshot' in the name - historical reason.
                 maven {
                     url 'https://nexus.hotstar.com/repository/android-snapshot/'
                     credentials {
                         username = 'android'
-                        password = 'UZJQyfcq@7558'
+                        password = System.getenv("MAVEN_REPOSITORY_ANDROID_ACCESS_PASSWORD")
+                    }
+                }
+
+                // Snapshot repository, keep it the last option
+                maven {
+                    url = uri("https://nexus.hotstar-labs.com/repository/android-library/")
+                    credentials {
+                        username = "android"
+                        password = System.getenv("MAVEN_REPOSITORY_ANDROID_ACCESS_PASSWORD")
                     }
                 }
             }
