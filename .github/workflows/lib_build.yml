@@ -4,7 +4,7 @@ name: lib_build
 on:
   push:
     branches:
-      - Hotstar-media3-1.7.1
+      - fix/LIVE-54247
 #jobs
 jobs:
   lib_build:
