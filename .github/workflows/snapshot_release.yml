@@ -9,7 +9,7 @@ jobs:
     uses: "hotstar/hotstar-github-action-workflows/.github/workflows/hotstar-android-snapshot-release.yml@main"
     with:
       FILE: "constants.gradle"
-      VAR_NAME: "releaseVersion"
+      VAR_NAME: "version"
       JAVA_VERSION: 21
     secrets: inherit
 

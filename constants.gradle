@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+version = '1.7.1.09-SNAPSHOT-1'
 project.ext {
     releaseVersion = '1.7.1.09-SNAPSHOT-1'
     releaseVersionCode = 1_007_001_3_00
