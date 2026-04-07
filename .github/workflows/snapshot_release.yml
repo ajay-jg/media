@@ -1,8 +1,8 @@
 name: Snapshot Release on PR Comment
 
 on:
-  issue_comment:
-    types: [created]
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   snapshot-release:
