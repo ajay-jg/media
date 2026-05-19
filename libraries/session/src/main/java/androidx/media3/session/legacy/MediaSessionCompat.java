@@ -4608,7 +4608,17 @@ public class MediaSessionCompat {
     public final RemoteUserInfo getCurrentControllerInfo() {
       android.media.session.MediaSessionManager.RemoteUserInfo info =
           ((MediaSession) mSessionFwk).getCurrentControllerInfo();
-      return new RemoteUserInfo(info);
+      try {
+        return new RemoteUserInfo(info);
+      } catch (IllegalArgumentException | NullPointerException e) {
+        // Some devices/OS versions return a RemoteUserInfo with an empty or null package name
+        // (e.g. Bluetooth media button events). Fall back to LEGACY_CONTROLLER so the event
+        // is still processed rather than crashing.
+        return new RemoteUserInfo(
+            RemoteUserInfo.LEGACY_CONTROLLER,
+            RemoteUserInfo.UNKNOWN_PID,
+            RemoteUserInfo.UNKNOWN_UID);
+      }
     }
   }
 
