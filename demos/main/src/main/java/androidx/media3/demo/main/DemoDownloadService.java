@@ -79,6 +79,11 @@ public class DemoDownloadService extends DownloadService {
             notMetRequirements);
   }
 
+  @Override
+  protected void logNonFatalError(Exception exception) {
+
+  }
+
   /**
    * Creates and displays notifications for downloads when they complete or fail.
    *

@@ -392,8 +392,9 @@ public final class AdsMediaSource extends CompositeMediaSource<MediaPeriodId> {
       adMediaSourceHolders = new AdMediaSourceHolder[playableAdGroupCount][];
       Arrays.fill(adMediaSourceHolders, new AdMediaSourceHolder[0]);
     } else {
-      int adGroupInsertionCount =
-          checkValidAdPlaybackStateUpdate(this.adPlaybackState, adPlaybackState);
+      // Validation is now handled by the AdsLoader (PlayerAdsLoaderImpl) before calling
+      // onAdPlaybackState, so we only grow the grid here if new ad groups were added.
+      int adGroupInsertionCount = adPlaybackState.adGroupCount - this.adPlaybackState.adGroupCount;
       if (adGroupInsertionCount > 0) {
         adMediaSourceHolders =
             growAdMediaSourceHolderGrid(adMediaSourceHolders, adGroupInsertionCount);
