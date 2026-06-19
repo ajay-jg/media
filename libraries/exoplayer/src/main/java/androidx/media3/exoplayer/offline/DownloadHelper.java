@@ -33,6 +33,7 @@ import androidx.media3.common.TrackSelectionOverride;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.util.Assertions;
+import androidx.media3.common.util.Log;
 import androidx.media3.common.util.NullableType;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.common.util.Util;
@@ -95,6 +96,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 @UnstableApi
 public final class DownloadHelper {
 
+  private static final String TAG = "DownloadHelper";
+
   /** Default track selection parameters for downloading. */
   public static final DefaultTrackSelector.Parameters DEFAULT_TRACK_SELECTOR_PARAMETERS =
       DefaultTrackSelector.Parameters.DEFAULT
@@ -135,6 +138,17 @@ public final class DownloadHelper {
      * @param e The error.
      */
     void onPrepareError(DownloadHelper helper, IOException e);
+  }
+
+  /** A callback to be notified when a non-fatal issue is detected. */
+  public interface NonFatalCallback {
+
+    /**
+     * Called when a non-fatal issue is detected.
+     *
+     * @param message The non-fatal issue.
+     */
+    void onNonFatalIssue(String message);
   }
 
   /** Thrown at an attempt to download live content. */
@@ -604,7 +618,8 @@ public final class DownloadHelper {
    * @return The built {@link DownloadRequest}.
    */
   public DownloadRequest getDownloadRequest(@Nullable byte[] data) {
-    return getDownloadRequest(localConfiguration.uri.toString(), data);
+    return getDownloadRequest(
+        localConfiguration.uri.toString(), data, /* nonFatalCallback= */ null);
   }
 
   /**
@@ -616,6 +631,20 @@ public final class DownloadHelper {
    * @return The built {@link DownloadRequest}.
    */
   public DownloadRequest getDownloadRequest(String id, @Nullable byte[] data) {
+    return getDownloadRequest(id, data, /* nonFatalCallback= */ null);
+  }
+
+  /**
+   * Builds a {@link DownloadRequest} for downloading the selected tracks. Must not be called until
+   * after preparation completes.
+   *
+   * @param id The unique content id.
+   * @param data Application provided data to store in {@link DownloadRequest#data}.
+   * @param nonFatalCallback Callback to notify non-fatal issues.
+   * @return The built {@link DownloadRequest}.
+   */
+  public DownloadRequest getDownloadRequest(
+      String id, @Nullable byte[] data, @Nullable NonFatalCallback nonFatalCallback) {
     DownloadRequest.Builder requestBuilder =
         new DownloadRequest.Builder(id, localConfiguration.uri)
             .setMimeType(localConfiguration.mimeType)
@@ -632,15 +661,106 @@ public final class DownloadHelper {
     List<StreamKey> streamKeys = new ArrayList<>();
     List<ExoTrackSelection> allSelections = new ArrayList<>();
     int periodCount = trackSelectionsByPeriodAndRenderer.length;
+    if (periodCount == 0) {
+      reportNonFatalIssue(
+          nonFatalCallback,
+          "StreamKeys debug: periodCount is 0 - no periods available for stream key generation");
+    } else {
+      Log.d(TAG, "StreamKeys debug: periodCount = " + periodCount);
+    }
     for (int periodIndex = 0; periodIndex < periodCount; periodIndex++) {
       allSelections.clear();
       int rendererCount = trackSelectionsByPeriodAndRenderer[periodIndex].length;
-      for (int rendererIndex = 0; rendererIndex < rendererCount; rendererIndex++) {
-        allSelections.addAll(trackSelectionsByPeriodAndRenderer[periodIndex][rendererIndex]);
+      if (rendererCount == 0) {
+        reportNonFatalIssue(
+            nonFatalCallback,
+            "StreamKeys debug: rendererCount is 0 for periodIndex "
+                + periodIndex
+                + " - no renderers available");
+      } else {
+        Log.d(
+            TAG,
+            "StreamKeys debug: periodIndex "
+                + periodIndex
+                + " has rendererCount = "
+                + rendererCount);
       }
-      streamKeys.addAll(mediaPreparer.mediaPeriods[periodIndex].getStreamKeys(allSelections));
+      for (int rendererIndex = 0; rendererIndex < rendererCount; rendererIndex++) {
+        List<ExoTrackSelection> rendererSelections =
+            trackSelectionsByPeriodAndRenderer[periodIndex][rendererIndex];
+        if (rendererSelections.isEmpty()) {
+          reportNonFatalIssue(
+              nonFatalCallback,
+              "StreamKeys debug: No track selections for periodIndex "
+                  + periodIndex
+                  + ", rendererIndex "
+                  + rendererIndex);
+        } else {
+          Log.d(
+              TAG,
+              "StreamKeys debug: periodIndex "
+                  + periodIndex
+                  + ", rendererIndex "
+                  + rendererIndex
+                  + " has "
+                  + rendererSelections.size()
+                  + " selections");
+        }
+        allSelections.addAll(rendererSelections);
+      }
+      if (allSelections.isEmpty()) {
+        reportNonFatalIssue(
+            nonFatalCallback,
+            "StreamKeys debug: allSelections is empty for periodIndex "
+                + periodIndex
+                + " - no track selections to generate stream keys from");
+      } else {
+        Log.d(
+            TAG,
+            "StreamKeys debug: periodIndex "
+                + periodIndex
+                + " total allSelections = "
+                + allSelections.size());
+      }
+      List<StreamKey> periodStreamKeys =
+          mediaPreparer.mediaPeriods[periodIndex].getStreamKeys(allSelections);
+      if (periodStreamKeys.isEmpty()) {
+        reportNonFatalIssue(
+            nonFatalCallback,
+            "StreamKeys debug: getStreamKeys returned empty list for periodIndex "
+                + periodIndex
+                + " despite having "
+                + allSelections.size()
+                + " track selections");
+      } else {
+        Log.d(
+            TAG,
+            "StreamKeys debug: periodIndex "
+                + periodIndex
+                + " generated "
+                + periodStreamKeys.size()
+                + " stream keys");
+      }
+      streamKeys.addAll(periodStreamKeys);
+    }
+    if (streamKeys.isEmpty()) {
+      reportNonFatalIssue(
+          nonFatalCallback,
+          "StreamKeys debug: Final streamKeys list is empty after processing "
+              + periodCount
+              + " periods - this may indicate a problem with track selection or stream key generation");
+    } else {
+      Log.d(TAG, "StreamKeys debug: Final streamKeys count = " + streamKeys.size());
     }
     return requestBuilder.setStreamKeys(streamKeys).build();
+  }
+
+  private static void reportNonFatalIssue(
+      @Nullable NonFatalCallback nonFatalCallback, String message) {
+    Log.w(TAG, message);
+    if (nonFatalCallback != null) {
+      nonFatalCallback.onNonFatalIssue(message);
+    }
   }
 
   @RequiresNonNull({
