@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - Hotstar-media3-1.7.1
+      - fix/PLAYB-20718/media3-no-stream-keys
 #jobs
 jobs:
   lib_build:
