@@ -965,10 +965,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       IOException error,
       int errorCount) {
     boolean isMediaChunk = isMediaChunk(loadable);
-    if (isMediaChunk
-        && !((HlsMediaChunk) loadable).isPublished()
-        && error instanceof HttpDataSource.InvalidResponseCodeException) {
-      int responseCode = ((HttpDataSource.InvalidResponseCodeException) error).responseCode;
+    // Bundle data sources preserve the HTTP failure as a cause of their typed exception. Unwrap
+    // it here so bundled unpublished parts follow the same RFC 8216 retry path as normal HLS.
+    HttpDataSource.InvalidResponseCodeException httpError = findHttpError(error);
+    if (isMediaChunk && !((HlsMediaChunk) loadable).isPublished() && httpError != null) {
+      int responseCode = httpError.responseCode;
       if (responseCode == 410 || responseCode == 404) {
         // According to RFC 8216, Section 6.2.6 a server should respond with an HTTP 404 (Not found)
         // for requests of hinted parts that are replaced and not available anymore. We've seen test
@@ -1054,6 +1055,18 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       }
     }
     return loadErrorAction;
+  }
+
+  @Nullable
+  private static HttpDataSource.InvalidResponseCodeException findHttpError(IOException error) {
+    Throwable current = error;
+    while (current != null) {
+      if (current instanceof HttpDataSource.InvalidResponseCodeException) {
+        return (HttpDataSource.InvalidResponseCodeException) current;
+      }
+      current = current.getCause();
+    }
+    return null;
   }
 
   // Called by the consuming thread, but only when there is no loading thread.
