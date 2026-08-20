@@ -243,17 +243,24 @@ public final class AudioCapabilitiesReceiver {
   private final class AudioDeviceCallbackV23 extends AudioDeviceCallback {
     @Override
     public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
-      onNewAudioCapabilities(
-          AudioCapabilities.getCapabilitiesInternal(context, audioAttributes, routedDevice));
+      handler.post(
+          () ->
+              onNewAudioCapabilities(
+                  AudioCapabilities.getCapabilitiesInternal(
+                      context, audioAttributes, routedDevice)));
     }
 
     @Override
     public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
-      if (Util.contains(removedDevices, routedDevice)) {
-        routedDevice = null;
-      }
-      onNewAudioCapabilities(
-          AudioCapabilities.getCapabilitiesInternal(context, audioAttributes, routedDevice));
+      handler.post(
+          () -> {
+            if (Util.contains(removedDevices, routedDevice)) {
+              routedDevice = null;
+            }
+            onNewAudioCapabilities(
+                AudioCapabilities.getCapabilitiesInternal(
+                    context, audioAttributes, routedDevice));
+          });
     }
   }
 
