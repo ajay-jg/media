@@ -37,6 +37,8 @@ android {
 }
 
 dependencies {
+  testImplementation(libs.junit)
+
   implementation(libs.androidx.appcompat)
   implementation(libs.material)
   implementation(libs.androidx.recyclerview)

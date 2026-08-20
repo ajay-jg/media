@@ -44,7 +44,9 @@ class ViewPagerMediaAdapter(
   private val currentMediaItemsAndIndexes: ArrayDeque<Pair<MediaItem, Int>> = ArrayDeque()
   private var playerPool: PlayerPool
   private val holderMap: MutableMap<Int, ViewPagerMediaHolder>
+  private val playerPoolSelectionPolicy = PlayerPoolSelectionPolicy(numberOfPlayers)
   private val targetPreloadStatusControl: DefaultTargetPreloadStatusControl
+  private var selectedPosition = 0
 
   companion object {
     private const val TAG = "ViewPagerMediaAdapter"
@@ -107,6 +109,12 @@ class ViewPagerMediaAdapter(
   override fun onViewAttachedToWindow(holder: ViewPagerMediaHolder) {
     val holderBindingAdapterPosition = holder.bindingAdapterPosition
     holderMap[holderBindingAdapterPosition] = holder
+    if (playerPoolSelectionPolicy.shouldAcquirePlayer(holderBindingAdapterPosition, selectedPosition)) {
+      holder.acquirePlayerIfNeeded()
+      if (holderBindingAdapterPosition == selectedPosition) {
+        holder.playIfPossible()
+      }
+    }
 
     if (!currentMediaItemsAndIndexes.isEmpty()) {
       val leftMostIndex = currentMediaItemsAndIndexes.first().second
@@ -142,6 +150,11 @@ class ViewPagerMediaAdapter(
   }
 
   fun onPageSelected(position: Int) {
+    selectedPosition = position
+    playerPoolSelectionPolicy
+      .positionsToReleaseOnSelection(holderMap.keys, position)
+      .forEach { holderMap[it]?.releasePlayer() }
+    holderMap[position]?.acquirePlayerIfNeeded()
     holderMap[position]?.playIfPossible()
     targetPreloadStatusControl.currentPlayingIndex = position
     preloadManager.setCurrentPlayingIndex(position)

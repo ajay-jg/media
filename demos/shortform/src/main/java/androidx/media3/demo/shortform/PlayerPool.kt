@@ -54,6 +54,9 @@ class PlayerPool(private val numberOfPlayers: Int, preloadManagerBuilder: Builde
 
   private fun acquirePlayerInternal(token: Int, callback: (ExoPlayer) -> Unit) {
     synchronized(playerMap) {
+      if (!playerRequestTokenSet.contains(token)) {
+        return
+      }
       if (!availablePlayerQueue.isEmpty()) {
         val playerNumber = availablePlayerQueue.remove()
         playerMap[playerNumber]?.let { callback.invoke(it) }
@@ -100,7 +103,9 @@ class PlayerPool(private val numberOfPlayers: Int, preloadManagerBuilder: Builde
       player?.clearMediaItems()
       if (player != null) {
         val playerNumber = playerMap.inverse()[player]
-        availablePlayerQueue.add(playerNumber)
+        if (playerNumber != null) {
+          availablePlayerQueue.add(playerNumber)
+        }
       }
     }
   }

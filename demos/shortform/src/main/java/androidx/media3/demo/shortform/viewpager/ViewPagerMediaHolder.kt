@@ -32,6 +32,7 @@ class ViewPagerMediaHolder(itemView: View, private val playerPool: PlayerPool) :
   private val playerView: PlayerView = itemView.findViewById(R.id.player_view)
   private var exoPlayer: ExoPlayer? = null
   private var isInView: Boolean = false
+  private var isPlayerAcquisitionPending: Boolean = false
   private var pendingPlayRequestUponSetupPlayer: Boolean = false
 
   private lateinit var mediaSource: MediaSource
@@ -57,9 +58,6 @@ class ViewPagerMediaHolder(itemView: View, private val playerPool: PlayerPool) :
   override fun onViewAttachedToWindow(view: View) {
     Log.d(TAG, "onViewAttachedToWindow: $bindingAdapterPosition")
     isInView = true
-    if (player == null) {
-      playerPool.acquirePlayer(bindingAdapterPosition, ::setupPlayer)
-    }
   }
 
   override fun onViewDetachedFromWindow(view: View) {
@@ -80,13 +78,28 @@ class ViewPagerMediaHolder(itemView: View, private val playerPool: PlayerPool) :
     }
   }
 
+  fun acquirePlayerIfNeeded() {
+    if (player != null || isPlayerAcquisitionPending) {
+      return
+    }
+    isPlayerAcquisitionPending = true
+    playerPool.acquirePlayer(bindingAdapterPosition, ::setupPlayer)
+  }
+
+  fun releasePlayer() {
+    releasePlayer(exoPlayer)
+  }
+
   private fun releasePlayer(player: ExoPlayer?) {
+    isPlayerAcquisitionPending = false
+    pendingPlayRequestUponSetupPlayer = false
     playerPool.releasePlayer(bindingAdapterPosition, player ?: exoPlayer)
     this.exoPlayer = null
     playerView.player = null
   }
 
   private fun setupPlayer(player: ExoPlayer) {
+    isPlayerAcquisitionPending = false
     if (!isInView) {
       releasePlayer(player)
     } else {
